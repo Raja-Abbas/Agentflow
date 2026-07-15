@@ -403,7 +403,7 @@ export default function Home() {
                     Get started free <ArrowRight className="ml-2 inline h-4 w-4" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">
+                <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
                   Talk to sales
                 </Button>
               </div>

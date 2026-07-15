@@ -58,12 +58,14 @@ export function Sidebar() {
       >
         {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-          {!collapsed && <Logo />}
-          {collapsed && (
-            <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-              <Hexagon className="h-5 w-5 text-white" strokeWidth={2.5} />
-            </div>
-          )}
+          <Link href="/dashboard" className="flex-shrink-0">
+            {!collapsed && <Logo />}
+            {collapsed && (
+              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
+                <Hexagon className="h-5 w-5 text-white" strokeWidth={2.5} />
+              </div>
+            )}
+          </Link>
           <button
             onClick={() => {
               if (mobileOpen) setMobileOpen(false);
