@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="600" y="280" font-family="Arial,sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">AgentFlow</text>
+  <text x="600" y="360" font-family="Arial,sans-serif" font-size="28" fill="white" text-anchor="middle" opacity="0.9">Build AI chatbots visually</text>
+  <text x="600" y="420" font-family="Arial,sans-serif" font-size="20" fill="white" text-anchor="middle" opacity="0.7">Drag-and-drop flow editor • Multi-model AI • Real-time chat</text>
+</svg>
