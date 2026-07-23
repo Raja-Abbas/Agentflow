@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart3,
   TrendingUp,
@@ -29,7 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, getNodeStats } from "@/lib/utils";
 
 const dateRanges = ["Last 7 days", "Last 30 days", "Last 90 days"] as const;
 
@@ -135,8 +135,22 @@ const topPerformingAgents = [
   },
 ];
 
+const nodeColors: Record<string, string> = {
+  trigger: "#10b981",
+  "ai-response": "#6366f1",
+  condition: "#fbbf24",
+  "user-input": "#3b82f6",
+  "api-call": "#a855f7",
+  end: "#ef4444",
+};
+
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<string>("Last 7 days");
+  const [nodeStats, setNodeStats] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setNodeStats(getNodeStats());
+  }, [dateRange]);
 
   return (
     <div className="space-y-8">
@@ -340,6 +354,31 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {Object.keys(nodeStats).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Node Usage in Flow Editor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(nodeColors).map(([type, color]) => {
+                const count = nodeStats[type] || 0;
+                if (count === 0) return null;
+                return (
+                  <div key={type} className="flex items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700 p-3 min-w-[140px]">
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 capitalize">{type.replace("-", " ")}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{count} nodes added</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

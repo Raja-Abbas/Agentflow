@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { trackNodeUsage } from "@/lib/utils";
 import {
   Save,
   Play,
@@ -18,6 +19,8 @@ import {
   CircleStop,
   GripVertical,
   Trash2,
+  Undo2,
+  Redo2,
   Settings,
   History,
   Mic,
@@ -220,6 +223,13 @@ export default function FlowEditorPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const [history, setHistory] = useState<{ nodes: FlowNode[] }[]>([{ nodes: JSON.parse(JSON.stringify(initialNodes)) }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
+  const [rightPanelWidth, setRightPanelWidth] = useState(280);
+  const isResizing = useRef<"left" | "right" | null>(null);
+
   const [versions, setVersions] = useState<FlowVersion[]>([]);
   const [showVersionPanel, setShowVersionPanel] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
@@ -232,6 +242,77 @@ export default function FlowEditorPage() {
   const [flowName, setFlowName] = useState("Customer Support Flow");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
 
+  const pushHistory = useCallback((newNodes: FlowNode[]) => {
+    setHistory((prev) => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+      return [...trimmed, { nodes: JSON.parse(JSON.stringify(newNodes)) }];
+    });
+    setHistoryIndex((prev) => prev + 1);
+  }, [historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const newIndex = historyIndex - 1;
+    setHistoryIndex(newIndex);
+    setNodes(JSON.parse(JSON.stringify(history[newIndex].nodes)));
+  }, [historyIndex, history]);
+
+  const redo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const newIndex = historyIndex + 1;
+    setHistoryIndex(newIndex);
+    setNodes(JSON.parse(JSON.stringify(history[newIndex].nodes)));
+  }, [historyIndex, history]);
+
+  const handleMouseDown = useCallback((side: "left" | "right") => {
+    isResizing.current = side;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("af_onboarding_seen");
+    if (!seen) setShowOnboarding(true);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      if (isResizing.current === "left") {
+        setLeftPanelWidth(Math.max(180, Math.min(400, e.clientX)));
+      } else {
+        setRightPanelWidth(Math.max(200, Math.min(500, window.innerWidth - e.clientX)));
+      }
+    };
+    const handleMouseUp = () => {
+      isResizing.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const flowData = params.get("flow");
@@ -240,11 +321,12 @@ export default function FlowEditorPage() {
         const decoded = JSON.parse(decodeURIComponent(atob(flowData)));
         if (decoded.nodes && decoded.edges) {
           setNodes(decoded.nodes);
+          pushHistory(decoded.nodes);
           if (decoded.name) setFlowName(decoded.name);
         }
       } catch { /* ignore invalid URLs */ }
     }
-  }, []);
+  }, [pushHistory]);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const currentDebugNodeData = nodes.find((n) => n.id === currentDebugNode);
@@ -252,20 +334,26 @@ export default function FlowEditorPage() {
   const updateNodeData = useCallback(
     (field: string, value: string | number) => {
       if (!selectedNodeId) return;
-      setNodes((prev) =>
-        prev.map((n) =>
+      setNodes((prev) => {
+        const next = prev.map((n) =>
           n.id === selectedNodeId ? { ...n, [field]: value } : n
-        )
-      );
+        );
+        pushHistory(next);
+        return next;
+      });
     },
-    [selectedNodeId]
+    [selectedNodeId, pushHistory]
   );
 
   const deleteNode = useCallback(() => {
     if (!selectedNodeId) return;
-    setNodes((prev) => prev.filter((n) => n.id !== selectedNodeId));
+    setNodes((prev) => {
+      const next = prev.filter((n) => n.id !== selectedNodeId);
+      pushHistory(next);
+      return next;
+    });
     setSelectedNodeId(null);
-  }, [selectedNodeId]);
+  }, [selectedNodeId, pushHistory]);
 
   const handleDragEnd = useCallback(
     (id: string, e: React.DragEvent) => {
@@ -274,11 +362,13 @@ export default function FlowEditorPage() {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left - 70;
       const y = e.clientY - rect.top - 20;
-      setNodes((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, x: Math.max(0, x), y: Math.max(0, y) } : n))
-      );
+      setNodes((prev) => {
+        const next = prev.map((n) => (n.id === id ? { ...n, x: Math.max(0, x), y: Math.max(0, y) } : n));
+        pushHistory(next);
+        return next;
+      });
     },
-    []
+    [pushHistory]
   );
 
   const handleDrop = useCallback(
@@ -286,6 +376,7 @@ export default function FlowEditorPage() {
       e.preventDefault();
       const type = e.dataTransfer.getData("application/reactflow");
       if (!type) return;
+      trackNodeUsage(type);
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -299,9 +390,13 @@ export default function FlowEditorPage() {
         x: Math.max(0, x),
         y: Math.max(0, y),
       };
-      setNodes((prev) => [...prev, newNode]);
+      setNodes((prev) => {
+        const next = [...prev, newNode];
+        pushHistory(next);
+        return next;
+      });
     },
-    []
+    [pushHistory]
   );
 
   const saveVersion = useCallback(() => {
@@ -318,9 +413,10 @@ export default function FlowEditorPage() {
 
   const restoreVersion = useCallback((version: FlowVersion) => {
     setNodes(JSON.parse(JSON.stringify(version.nodes)));
+    pushHistory(JSON.parse(JSON.stringify(version.nodes)));
     setSelectedNodeId(null);
     setShowVersionPanel(false);
-  }, []);
+  }, [pushHistory]);
 
   const exportFlow = useCallback(() => {
     const data = { name: flowName, nodes, edges };
@@ -346,6 +442,7 @@ export default function FlowEditorPage() {
           const data = JSON.parse(event.target?.result as string);
           if (data.nodes && data.edges) {
             setNodes(data.nodes);
+            pushHistory(data.nodes);
             if (data.name) setFlowName(data.name);
           }
         } catch { /* ignore invalid files */ }
@@ -353,13 +450,14 @@ export default function FlowEditorPage() {
       reader.readAsText(file);
     };
     input.click();
-  }, []);
+  }, [pushHistory]);
 
   const loadTemplate = useCallback((template: FlowTemplate) => {
     setNodes(JSON.parse(JSON.stringify(template.nodes)));
+    pushHistory(JSON.parse(JSON.stringify(template.nodes)));
     setFlowName(template.name);
     setShowTemplateDialog(false);
-  }, []);
+  }, [pushHistory]);
 
   const copyShareLink = useCallback(() => {
     const data = { name: flowName, nodes, edges };
@@ -513,6 +611,12 @@ export default function FlowEditorPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo (Ctrl+Z)">
+            <Undo2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo (Ctrl+Shift+Z)">
+            <Redo2 className="w-4 h-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowTemplateDialog(true)} title="Load a template">
             <Zap className="w-4 h-4 mr-1.5" />
             Templates
@@ -617,7 +721,7 @@ export default function FlowEditorPage() {
         )}
 
         {/* Left Panel - Node Palette */}
-        <Card className="w-60 shrink-0 rounded-none border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
+        <Card className="shrink-0 rounded-none border-r border-slate-200 dark:border-slate-700 overflow-y-auto" style={{ width: leftPanelWidth }}>
           <CardHeader className="p-4">
             <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Node Palette
@@ -645,6 +749,13 @@ export default function FlowEditorPage() {
             ))}
           </CardContent>
         </Card>
+
+        <div
+          className="w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-indigo-300/50 dark:hover:bg-indigo-700/50 transition-colors relative"
+          onMouseDown={() => handleMouseDown("left")}
+        >
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4" />
+        </div>
 
         {/* Center - Canvas */}
         <div
@@ -730,8 +841,14 @@ export default function FlowEditorPage() {
         </div>
 
         {/* Right Panel - Node Properties or Debug Panel */}
+        <div
+          className="w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-indigo-300/50 dark:hover:bg-indigo-700/50 transition-colors relative"
+          onMouseDown={() => handleMouseDown("right")}
+        >
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4" />
+        </div>
         {showDebugPanel && debugMode ? (
-          <Card className="w-[350px] shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto flex flex-col">
+          <Card className="shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto flex flex-col" style={{ width: rightPanelWidth + 70 }}>
             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Bug className="w-4 h-4 text-amber-500" />
@@ -864,7 +981,7 @@ export default function FlowEditorPage() {
             </div>
           </Card>
         ) : (
-          <Card className="w-[280px] shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto">
+          <Card className="shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto" style={{ width: rightPanelWidth }}>
             <CardHeader className="p-4">
               <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {selectedNode ? "Node Properties" : "Select a Node"}
@@ -994,6 +1111,60 @@ export default function FlowEditorPage() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setShowOnboarding(false); localStorage.setItem("af_onboarding_seen", "true"); }}>
+          <Card className="w-[420px]" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Bot className="w-5 h-5 text-indigo-500" /> Welcome to AgentFlow
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white text-xs font-bold">1</div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Drag nodes from the palette</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Choose triggers, AI responses, conditions, and more from the left panel.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white text-xs font-bold">2</div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Connect them together</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Drag from node to node to create conversation paths. Label your connections.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white text-xs font-bold">3</div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Configure each node</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Click a node to edit its properties in the right panel — prompts, models, conditions.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white text-xs font-bold">⚡</div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Test with Debug mode</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Click &quot;Debug&quot; to step through your flow node by node. See exactly what happens at each step.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white text-xs font-bold">4</div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Save &amp; share</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Save versions, export as JSON, or share via link. Your flows are always backed up.</p>
+                  </div>
+                </div>
+              </div>
+              <Button className="w-full" onClick={() => { setShowOnboarding(false); localStorage.setItem("af_onboarding_seen", "true"); }}>
+                Get started
+              </Button>
             </CardContent>
           </Card>
         </div>
