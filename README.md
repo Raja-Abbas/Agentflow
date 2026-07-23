@@ -1,6 +1,6 @@
 # AgentFlow
 
-**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, undo/redo, onboarding walkthrough, resizable panels, multi-model support, live debug mode, versioning, voice input, live LLM calls (BYO API key), embeddable widget, node usage analytics, and dark mode.
+**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, live LLM calls (BYO key), collaborative editing, versioning, debug mode, voice input, embeddable widget, undo/redo, onboarding, resizable panels, node analytics, dark mode, and more.
 
 **Author:** [Raja Abbas Affandi](https://www.linkedin.com/in/raja-abbas-affandi)
 
@@ -10,25 +10,35 @@
 
 Build, test, and deploy AI chatbots without writing code.
 
-- **Visual Flow Editor** — Drag-and-drop nodes to design conversation flows with triggers, AI responses, conditions, and API calls
-- **Multi-Model Support** — Connect to OpenAI GPT-4, Claude, and Gemini
-- **Flow Versioning** — Save snapshots of your flows, browse history, and restore any previous version
-- **Live Debug Mode** — Step through each node in real time to trace decisions, see condition evaluations, and inspect AI response prompts
-- **Voice Input** — Use speech-to-text to test flows hands-free with the built-in microphone button
-- **Live LLM Calls** — Bring your own API key (OpenAI, Anthropic, Google). Calls go directly from your browser to the AI provider — zero cost to AgentFlow
-- **Embeddable Widget** — Deploy your chatbot on any website with a single `<script>` tag. Floating chat button with popup
-- **Flow Templates** — Start from pre-built flows (Customer Support, Lead Qualification, FAQ Bot)
-- **Export/Import & Sharing** — Export flows as JSON, import from file, or share via encoded URL
-- **Undo/Redo** — Full undo/redo support with Ctrl+Z/Y and toolbar buttons. Every action tracked: drag, drop, delete, edit, template load, import, version restore
-- **Onboarding Walkthrough** — First-time visitors see a guided 5-step tour on first visit (dismissable, shown once)
-- **Resizable Panels** — Drag handles between palette, canvas, and properties panels with adjustable widths
-- **Node Usage Analytics** — Tracks which node types you use most, displayed as a color-coded breakdown in the Analytics page
-- **Mobile Responsiveness** — Scrollable tables and fluid layout across all dashboard pages
-- **Dark Mode** — Toggle in sidebar, full support across all pages
-- **Agent Management** — Create, configure, and manage multiple AI agents
-- **Conversation History** — Track and review all conversations across agents
-- **Analytics Dashboard** — Monitor messages, response times, satisfaction rates, and agent performance
-- **API Key Management** — Generate and manage API keys for integrations
+### Flow Editor
+- **Visual Flow Editor** — Custom SVG canvas with drag-and-drop nodes (triggers, AI responses, conditions, API calls)
+- **Undo/Redo** — Ctrl+Z/Y or toolbar buttons for every action: drag, drop, delete, edit, template load, import, version restore
+- **Resizable Panels** — Drag handles between palette, canvas, and properties panels (180–500px range)
+- **Onboarding Walkthrough** — 5-step guided tour on first visit (dismissable, shown once)
+- **Collaborative Editing** — BroadcastChannel syncs changes across open tabs in real time
+- **Flow Templates** — 3 presets (Customer Support, Lead Qualification, FAQ Bot) + save your own as custom templates
+
+### AI & LLM
+- **Multi-Model Support** — Connect to OpenAI GPT-4, Anthropic Claude, and Google Gemini
+- **Live LLM Calls** — BYO API key, calls go browser→AI provider directly — zero server cost
+- **Live Debug Mode** — Step through each node, trace decisions, inspect AI prompt context, pick condition branches
+- **Voice Input** — Web Speech API for hands-free testing in both conversations and debug mode
+
+### Versioning & Sharing
+- **Flow Versioning** — Save named snapshots, browse history, restore any previous version
+- **Export/Import** — Download flows as JSON or import from file
+- **Share via URL** — Encode entire flow in a shareable link
+
+### Deploy
+- **Embeddable Widget** — Drop a single `<script>` tag on any website for a floating chat button with popup
+- **Dark Mode** — Full support across all pages via sidebar toggle
+
+### Analytics & Management
+- **Node Usage Analytics** — Tracks which node types you use most, displayed as color-coded breakdown
+- **Agent Management** — Create, configure multiple AI agents with model, temperature, system prompt
+- **Conversation History** — Track and review all conversations
+- **Analytics Dashboard** — Messages, response times, satisfaction, agent performance charts
+- **Settings** — AI Models tab with masked API key inputs, billing, notifications
 
 ## Tech Stack
 
