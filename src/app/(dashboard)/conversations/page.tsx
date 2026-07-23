@@ -18,6 +18,7 @@ import {
   Mic,
   MicOff,
 } from "lucide-react";
+import { callLLM } from "@/lib/llm";
 
 const conversations = [
   {
@@ -123,6 +124,7 @@ export default function ConversationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [messageList, setMessageList] = useState(messages);
   const recognitionRef = useRef<any>(null);
 
   const startListening = () => {
@@ -146,6 +148,21 @@ export default function ConversationsPage() {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!messageInput.trim()) return;
+    const userMsg = { id: `${Date.now()}`, role: "user" as const, content: messageInput, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+    setMessageList((prev) => [...prev, userMsg]);
+    setMessageInput("");
+    try {
+      const reply = await callLLM("GPT-4", "You are a helpful assistant.", [...messageList, userMsg].map((m) => ({ role: m.role, content: m.content })));
+      const botMsg = { id: `${Date.now() + 1}`, role: "bot" as const, content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      setMessageList((prev) => [...prev, botMsg]);
+    } catch (err: any) {
+      const errMsg = { id: `${Date.now() + 1}`, role: "bot" as const, content: `⚠️ ${err.message || "Failed to get response. Check your API keys in Settings > AI Models."}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      setMessageList((prev) => [...prev, errMsg]);
     }
   };
 
@@ -251,7 +268,7 @@ export default function ConversationsPage() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.map((msg) => (
+          {messageList.map((msg) => (
             <div
               key={msg.id}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -321,7 +338,7 @@ export default function ConversationsPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    setMessageInput("");
+                    sendMessage();
                   }
                 }}
               />
@@ -333,7 +350,7 @@ export default function ConversationsPage() {
                 <Smile className="w-4 h-4" />
               </Button>
             </div>
-            <Button size="icon" className="h-9 w-9 shrink-0">
+            <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendMessage}>
               <Send className="w-4 h-4" />
             </Button>
           </div>

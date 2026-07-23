@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Key,
@@ -14,6 +14,9 @@ import {
   Shield,
   Check,
   AlertTriangle,
+  Brain,
+  Save,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Card,
@@ -110,6 +113,21 @@ export default function SettingsPage() {
     });
     return initial;
   });
+  const [llmKeys, setLlmKeys] = useState<Record<string, string>>({ openai: "", anthropic: "", gemini: "" });
+  const [showKeySaveSuccess, setShowKeySaveSuccess] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("af_llm_keys") || "{}");
+      setLlmKeys({ openai: saved.openai || "", anthropic: saved.anthropic || "", gemini: saved.gemini || "" });
+    } catch {}
+  }, []);
+
+  const saveLlmKeys = () => {
+    localStorage.setItem("af_llm_keys", JSON.stringify(llmKeys));
+    setShowKeySaveSuccess(true);
+    setTimeout(() => setShowKeySaveSuccess(false), 2000);
+  };
 
   const handleGenerateKey = () => {
     const key = `af_${Array.from({ length: 40 }, () =>
@@ -151,6 +169,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="billing" className="gap-2">
             <CreditCard className="h-4 w-4" /> Billing
+          </TabsTrigger>
+          <TabsTrigger value="ai-models" className="gap-2">
+            <Brain className="h-4 w-4" /> AI Models
           </TabsTrigger>
         </TabsList>
 
@@ -382,6 +403,60 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="ai-models">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Model API Keys</CardTitle>
+              <CardDescription>
+                Your API keys are stored locally in your browser and never sent to our servers. 
+                They are used to make direct calls from your browser to the AI provider.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="openai-key">OpenAI API Key</Label>
+                <Input
+                  id="openai-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={llmKeys.openai}
+                  onChange={(e) => setLlmKeys((prev) => ({ ...prev, openai: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="anthropic-key">Anthropic API Key</Label>
+                <Input
+                  id="anthropic-key"
+                  type="password"
+                  placeholder="sk-ant-..."
+                  value={llmKeys.anthropic}
+                  onChange={(e) => setLlmKeys((prev) => ({ ...prev, anthropic: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gemini-key">Google Gemini API Key</Label>
+                <Input
+                  id="gemini-key"
+                  type="password"
+                  placeholder="AIza..."
+                  value={llmKeys.gemini}
+                  onChange={(e) => setLlmKeys((prev) => ({ ...prev, gemini: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Button onClick={saveLlmKeys} className="gap-2">
+                  <Save className="h-4 w-4" /> Save Keys
+                </Button>
+                {showKeySaveSuccess && (
+                  <Badge variant="default" className="gap-1 bg-emerald-500">
+                    <CheckCircle2 className="h-3 w-3" /> Keys saved
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
