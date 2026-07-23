@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Save,
   Play,
@@ -18,6 +19,18 @@ import {
   GripVertical,
   Trash2,
   Settings,
+  History,
+  Mic,
+  MicOff,
+  Send,
+  StepForward,
+  Pause,
+  PlayIcon,
+  Bug,
+  X,
+  ChevronRight,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 
 interface FlowNode {
@@ -37,6 +50,24 @@ interface FlowEdge {
   source: string;
   target: string;
   label?: string;
+}
+
+interface FlowVersion {
+  id: string;
+  version: number;
+  name: string;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  createdAt: string;
+}
+
+interface DebugStep {
+  nodeId: string;
+  label: string;
+  type: string;
+  input: string;
+  output: string;
+  decision?: string;
 }
 
 const initialNodes: FlowNode[] = [
@@ -84,13 +115,42 @@ const nodeIcons: Record<string, React.ReactNode> = {
   end: <CircleStop className="w-4 h-4" />,
 };
 
+function findOutgoingEdge(nodeId: string, edges: FlowEdge[], label?: string): FlowEdge | undefined {
+  const outgoing = edges.filter((e) => e.source === nodeId);
+  if (label && outgoing.length > 1) return outgoing.find((e) => e.label === label);
+  return outgoing[0];
+}
+
+function getNextNode(currentId: string, edges: FlowEdge[], nodes: FlowNode[], decision?: string): string | null {
+  const outgoing = edges.filter((e) => e.source === currentId);
+  if (outgoing.length === 0) return null;
+  if (outgoing.length === 1) return outgoing[0].target;
+  if (decision) {
+    const match = outgoing.find((e) => e.label === decision);
+    return match?.target || outgoing[0].target;
+  }
+  return outgoing[0].target;
+}
+
 export default function FlowEditorPage() {
   const [nodes, setNodes] = useState<FlowNode[]>(initialNodes);
   const [edges] = useState<FlowEdge[]>(initialEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const [versions, setVersions] = useState<FlowVersion[]>([]);
+  const [showVersionPanel, setShowVersionPanel] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugSteps, setDebugSteps] = useState<DebugStep[]>([]);
+  const [currentDebugNode, setCurrentDebugNode] = useState<string | null>(null);
+  const [debugInput, setDebugInput] = useState("");
+  const [debugMessages, setDebugMessages] = useState<{ role: string; content: string }[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [flowName, setFlowName] = useState("Customer Support Flow");
+
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+  const currentDebugNodeData = nodes.find((n) => n.id === currentDebugNode);
 
   const updateNodeData = useCallback(
     (field: string, value: string | number) => {
@@ -147,6 +207,137 @@ export default function FlowEditorPage() {
     []
   );
 
+  const saveVersion = useCallback(() => {
+    const newVersion: FlowVersion = {
+      id: `v${Date.now()}`,
+      version: versions.length + 1,
+      name: `v${versions.length + 1}`,
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+      createdAt: new Date().toISOString(),
+    };
+    setVersions((prev) => [...prev, newVersion]);
+  }, [nodes, edges, versions.length]);
+
+  const restoreVersion = useCallback((version: FlowVersion) => {
+    setNodes(JSON.parse(JSON.stringify(version.nodes)));
+    setSelectedNodeId(null);
+    setShowVersionPanel(false);
+  }, []);
+
+  const startDebug = useCallback(() => {
+    const triggerNode = nodes.find((n) => n.type === "trigger");
+    if (!triggerNode) return;
+    setDebugMode(true);
+    setShowDebugPanel(true);
+    setCurrentDebugNode(triggerNode.id);
+    setDebugMessages([{ role: "bot", content: "Flow debugging started. Click 'Step Forward' to walk through each node." }]);
+    setDebugSteps([]);
+    setDebugInput("");
+  }, [nodes]);
+
+  const stepForward = useCallback(() => {
+    if (!currentDebugNode) return;
+    const node = nodes.find((n) => n.id === currentDebugNode);
+    if (!node) return;
+
+    const step: DebugStep = {
+      nodeId: node.id,
+      label: node.label,
+      type: node.type,
+      input: "",
+      output: "",
+    };
+
+    let nextId: string | null = null;
+
+    switch (node.type) {
+      case "trigger":
+        step.output = "Flow triggered. Proceeding to next node.";
+        setDebugMessages((prev) => [...prev, { role: "bot", content: `🟢 Starting flow at "${node.label}"` }]);
+        nextId = getNextNode(node.id, edges, nodes);
+        break;
+
+      case "ai-response":
+        step.input = `Prompt: ${node.prompt || "Default system prompt"}\nModel: ${node.model || "GPT-4"}`;
+        step.output = `✅ AI response generated using ${node.model || "GPT-4"}`;
+        setDebugMessages((prev) => [...prev,
+          { role: "bot", content: `🤖 "${node.label}" — Sending to ${node.model || "GPT-4"}` },
+          { role: "bot", content: `💬 ${node.prompt ? `"${node.prompt.substring(0, 60)}..."` : "Processing..."}` },
+        ]);
+        nextId = getNextNode(node.id, edges, nodes);
+        break;
+
+      case "condition":
+        step.input = `Condition: ${node.condition || "No condition set"}`;
+        const decision = debugInput || "support";
+        step.output = `Evaluating: ${node.condition || "true"}`;
+        step.decision = decision;
+        setDebugMessages((prev) => [...prev,
+          { role: "bot", content: `🔀 "${node.label}" — Evaluating condition` },
+          { role: "bot", content: `Condition: ${node.condition || "true"}` },
+          { role: "bot", content: `Decision: Taking "${decision}" branch →` },
+        ]);
+        nextId = getNextNode(node.id, edges, nodes, decision);
+        break;
+
+      case "user-input":
+        step.input = debugInput || "Waiting for user input...";
+        step.output = `Received: "${debugInput || "No input"}"`;
+        setDebugMessages((prev) => [...prev,
+          { role: "bot", content: `💬 "${node.label}" — Waiting for user input` },
+          ...(debugInput ? [{ role: "user" as const, content: debugInput }] : []),
+        ]);
+        nextId = getNextNode(node.id, edges, nodes);
+        break;
+
+      case "api-call":
+        step.output = "🌐 API call executed successfully";
+        setDebugMessages((prev) => [...prev, { role: "bot", content: `🌐 "${node.label}" — Calling external API` }]);
+        nextId = getNextNode(node.id, edges, nodes);
+        break;
+
+      case "end":
+        step.output = "Flow ended.";
+        setDebugMessages((prev) => [...prev, { role: "bot", content: `🔴 "${node.label}" — Flow complete` }]);
+        setCurrentDebugNode(null);
+        setDebugSteps((prev) => [...prev, step]);
+        return;
+
+      default:
+        nextId = getNextNode(node.id, edges, nodes);
+    }
+
+    setDebugSteps((prev) => [...prev, step]);
+    setCurrentDebugNode(nextId);
+    setDebugInput("");
+  }, [currentDebugNode, nodes, edges, debugInput]);
+
+  const stopDebug = useCallback(() => {
+    setDebugMode(false);
+    setShowDebugPanel(false);
+    setCurrentDebugNode(null);
+    setDebugSteps([]);
+    setDebugMessages([]);
+    setDebugInput("");
+  }, []);
+
+  const startListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setDebugInput((prev) => prev + transcript);
+    };
+    recognition.start();
+  }, []);
+
   const getEdgePath = (source: FlowNode, target: FlowNode) => {
     const sx = source.x + 70;
     const sy = source.y + 40;
@@ -162,7 +353,7 @@ export default function FlowEditorPage() {
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-screen">
       {/* Top Toolbar */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 h-14 shrink-0">
         <div className="flex items-center gap-3">
@@ -171,24 +362,111 @@ export default function FlowEditorPage() {
           </Button>
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-indigo-500" />
-            <h1 className="text-lg font-semibold text-slate-900">
-              Customer Support Flow
-            </h1>
+            <input
+              value={flowName}
+              onChange={(e) => setFlowName(e.target.value)}
+              className="text-lg font-semibold text-slate-900 bg-transparent border-none outline-none focus:ring-0"
+            />
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Play className="w-4 h-4 mr-1.5" />
-            Test
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowVersionPanel(!showVersionPanel)}
+            className={showVersionPanel ? "bg-indigo-50 border-indigo-300" : ""}
+          >
+            <History className="w-4 h-4 mr-1.5" />
+            Versions
+            {versions.length > 0 && (
+              <Badge className="ml-1.5 h-5 px-1.5 text-[10px]">{versions.length}</Badge>
+            )}
           </Button>
-          <Button size="sm">
+          <Button
+            variant={debugMode ? "default" : "outline"}
+            size="sm"
+            onClick={debugMode ? stopDebug : startDebug}
+            className={debugMode ? "bg-amber-500 hover:bg-amber-600 border-amber-500" : ""}
+          >
+            {debugMode ? (
+              <><Pause className="w-4 h-4 mr-1.5" /> Stop Debug</>
+            ) : (
+              <><Bug className="w-4 h-4 mr-1.5" /> Debug</>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={saveVersion}>
             <Save className="w-4 h-4 mr-1.5" />
-            Save
+            Save Version
           </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Version Panel */}
+        {showVersionPanel && (
+          <Card className="w-72 shrink-0 rounded-none border-r border-slate-200 overflow-y-auto">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-slate-700">
+                Version History
+              </CardTitle>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowVersionPanel(false)}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 space-y-2">
+              {versions.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">
+                  No versions saved yet.<br />Click &quot;Save Version&quot; to create one.
+                </p>
+              ) : (
+                [...versions].reverse().map((v) => (
+                  <div
+                    key={v.id}
+                    className="rounded-lg border border-slate-200 p-3 hover:border-indigo-300 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-slate-900">v{v.version}</span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(v.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2">{v.name}</p>
+                    <div className="flex gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => restoreVersion(v)}
+                      >
+                        <RotateCcw className="w-3 h-3" /> Restore
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => {
+                          setNodes(JSON.parse(JSON.stringify(v.nodes)));
+                          setSelectedNodeId(null);
+                        }}
+                      >
+                        <ChevronRight className="w-3 h-3" /> Preview
+                      </Button>
+                    </div>
+                    <div className="mt-2 flex gap-1">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {v.nodes.length} nodes
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {v.edges.length} edges
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Left Panel - Node Palette */}
         <Card className="w-60 shrink-0 rounded-none border-r border-slate-200 overflow-y-auto">
           <CardHeader className="p-4">
@@ -261,122 +539,278 @@ export default function FlowEditorPage() {
             })}
           </svg>
 
-          {/* Nodes */}
-          {nodes.map((node) => (
-            <div
-              key={node.id}
-              draggable
-              onDragEnd={(e) => handleDragEnd(node.id, e)}
-              onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
-              className={`absolute cursor-grab active:cursor-grabbing rounded-lg border-2 px-4 py-3 shadow-md min-w-[140px] transition-shadow ${
-                nodeColors[node.type] || "bg-slate-500 border-slate-600 text-white"
-              } ${selectedNodeId === node.id ? "ring-2 ring-indigo-400 ring-offset-2" : ""}`}
-              style={{ left: node.x, top: node.y }}
-            >
-              <div className="flex items-center gap-2">
-                {nodeIcons[node.type]}
-                <span className="text-sm font-medium">{node.label}</span>
-              </div>
+          {/* Debug mode indicator */}
+          {debugMode && (
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-medium">
+              <Bug className="w-3.5 h-3.5" />
+              Debug Mode — Step through each node
             </div>
-          ))}
+          )}
+
+          {/* Nodes */}
+          {nodes.map((node) => {
+            const isDebugActive = debugMode && currentDebugNode === node.id;
+            const isDebugVisited = debugSteps.some((s) => s.nodeId === node.id);
+            return (
+              <div
+                key={node.id}
+                draggable={!debugMode}
+                onDragEnd={(e) => !debugMode && handleDragEnd(node.id, e)}
+                onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
+                className={`absolute cursor-grab active:cursor-grabbing rounded-lg border-2 px-4 py-3 shadow-md min-w-[140px] transition-all ${
+                  nodeColors[node.type] || "bg-slate-500 border-slate-600 text-white"
+                } ${selectedNodeId === node.id ? "ring-2 ring-indigo-400 ring-offset-2" : ""}
+                  ${isDebugActive ? "ring-2 ring-amber-400 ring-offset-2 shadow-lg shadow-amber-200 scale-105" : ""}
+                  ${isDebugVisited && !isDebugActive ? "opacity-70" : ""}
+                `}
+                style={{ left: node.x, top: node.y }}
+              >
+                <div className="flex items-center gap-2">
+                  {nodeIcons[node.type]}
+                  <span className="text-sm font-medium">{node.label}</span>
+                  {isDebugVisited && (
+                    <Check className="w-3.5 h-3.5 ml-auto text-white/70" />
+                  )}
+                  {isDebugActive && (
+                    <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping ml-auto" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Right Panel - Node Properties */}
-        <Card className="w-[280px] shrink-0 rounded-none border-l border-slate-200 overflow-y-auto">
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm font-semibold text-slate-700">
-              {selectedNode ? "Node Properties" : "Select a Node"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            {selectedNode ? (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">Name</label>
-                  <Input
-                    value={selectedNode.label}
-                    onChange={(e) => updateNodeData("label", e.target.value)}
-                  />
-                </div>
+        {/* Right Panel - Node Properties or Debug Panel */}
+        {showDebugPanel && debugMode ? (
+          <Card className="w-[350px] shrink-0 rounded-none border-l border-slate-200 overflow-y-auto flex flex-col">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Bug className="w-4 h-4 text-amber-500" />
+                <CardTitle className="text-sm font-semibold text-slate-700">
+                  Debug: Step-through
+                </CardTitle>
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={stopDebug}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </CardHeader>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">Type</label>
-                  <div className="text-sm font-medium text-slate-700 bg-slate-100 px-3 py-2 rounded-md capitalize">
-                    {selectedNode.type.replace("-", " ")}
+            {/* Current Node Info */}
+            {currentDebugNodeData && (
+              <div className="p-4 border-b border-slate-200 bg-amber-50/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1 rounded ${nodeColors[currentDebugNodeData.type] || "bg-slate-500"} text-white`}>
+                    {nodeIcons[currentDebugNodeData.type]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{currentDebugNodeData.label}</p>
+                    <p className="text-xs text-slate-500 capitalize">{currentDebugNodeData.type.replace("-", " ")}</p>
                   </div>
                 </div>
-
-                {selectedNode.type === "ai-response" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-500">Model</label>
-                      <select
-                        value={selectedNode.model || ""}
-                        onChange={(e) => updateNodeData("model", e.target.value)}
-                        className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="GPT-4">GPT-4</option>
-                        <option value="GPT-3.5">GPT-3.5</option>
-                        <option value="Claude">Claude</option>
-                        <option value="Gemini">Gemini</option>
-                      </select>
+                {currentDebugNodeData.type === "condition" && (
+                  <div className="mt-2">
+                    <label className="text-xs font-medium text-slate-500">Test Decision Branch</label>
+                    <div className="flex gap-1.5 mt-1">
+                      {edges.filter((e) => e.source === currentDebugNodeData.id).map((edge) => (
+                        <Button
+                          key={edge.id}
+                          size="sm"
+                          variant={debugInput === edge.label ? "default" : "outline"}
+                          className="h-7 text-xs"
+                          onClick={() => setDebugInput(edge.label || "true")}
+                        >
+                          {edge.label || "Default"}
+                        </Button>
+                      ))}
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-500">System Prompt</label>
-                      <Textarea
-                        value={selectedNode.prompt || ""}
-                        onChange={(e) => updateNodeData("prompt", e.target.value)}
-                        rows={4}
-                        placeholder="Enter system prompt..."
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-500">
-                        Temperature: {selectedNode.temperature ?? 0.7}
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        value={selectedNode.temperature ?? 0.7}
-                        onChange={(e) => updateNodeData("temperature", parseFloat(e.target.value))}
-                        className="w-full accent-indigo-500"
-                      />
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>Precise</span>
-                        <span>Creative</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {selectedNode.type === "condition" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500">Condition Expression</label>
-                    <Textarea
-                      value={selectedNode.condition || ""}
-                      onChange={(e) => updateNodeData("condition", e.target.value)}
-                      rows={3}
-                      placeholder="e.g. intent === 'support'"
-                    />
                   </div>
                 )}
+              </div>
+            )}
 
-                <div className="pt-4 border-t border-slate-200">
-                  <Button variant="destructive" size="sm" className="w-full" onClick={deleteNode}>
-                    <Trash2 className="w-4 h-4 mr-1.5" />
-                    Delete Node
+            {/* Debug Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {debugMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-[85%] ${
+                      msg.role === "user"
+                        ? "bg-indigo-600 text-white"
+                        : msg.content.startsWith("🟢")
+                        ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                        : msg.content.startsWith("🤖")
+                        ? "bg-indigo-50 border border-indigo-200 text-indigo-800"
+                        : msg.content.startsWith("🔀")
+                        ? "bg-amber-50 border border-amber-200 text-amber-800"
+                        : msg.content.startsWith("🔴")
+                        ? "bg-red-50 border border-red-200 text-red-800"
+                        : msg.content.startsWith("🌐")
+                        ? "bg-purple-50 border border-purple-200 text-purple-800"
+                        : msg.content.startsWith("💬")
+                        ? "bg-blue-50 border border-blue-200 text-blue-800"
+                        : "bg-slate-100 text-slate-800"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {!currentDebugNode && debugMessages.length > 0 && (
+                <div className="text-center pt-4">
+                  <p className="text-sm font-medium text-slate-700">Flow complete</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={startDebug}>
+                    <RotateCcw className="w-3 h-3 mr-1" /> Restart
                   </Button>
                 </div>
+              )}
+            </div>
+
+            {/* Debug Controls */}
+            <div className="p-4 border-t border-slate-200 space-y-2">
+              {currentDebugNodeData?.type === "user-input" && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Type test input..."
+                    value={debugInput}
+                    onChange={(e) => setDebugInput(e.target.value)}
+                    className="text-sm h-9"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") stepForward();
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={startListening}
+                    title={isListening ? "Stop listening" : "Voice input"}
+                  >
+                    {isListening ? (
+                      <MicOff className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <Mic className="w-4 h-4 text-slate-500" />
+                    )}
+                  </Button>
+                  <Button size="icon" className="h-9 w-9 shrink-0" onClick={stepForward}>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+              {currentDebugNode && currentDebugNodeData?.type !== "user-input" && (
+                <Button className="w-full gap-2" onClick={stepForward} disabled={!currentDebugNode}>
+                  <StepForward className="w-4 h-4" />
+                  Step Forward
+                  {currentDebugNodeData && (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                </Button>
+              )}
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Step {debugSteps.length}</span>
+                <span>{debugSteps.filter((s) => s.nodeId).length} nodes visited</span>
               </div>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Click on a node in the canvas to view and edit its properties.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </Card>
+        ) : (
+          <Card className="w-[280px] shrink-0 rounded-none border-l border-slate-200 overflow-y-auto">
+            <CardHeader className="p-4">
+              <CardTitle className="text-sm font-semibold text-slate-700">
+                {selectedNode ? "Node Properties" : "Select a Node"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {selectedNode ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500">Name</label>
+                    <Input
+                      value={selectedNode.label}
+                      onChange={(e) => updateNodeData("label", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500">Type</label>
+                    <div className="text-sm font-medium text-slate-700 bg-slate-100 px-3 py-2 rounded-md capitalize">
+                      {selectedNode.type.replace("-", " ")}
+                    </div>
+                  </div>
+
+                  {selectedNode.type === "ai-response" && (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-500">Model</label>
+                        <select
+                          value={selectedNode.model || ""}
+                          onChange={(e) => updateNodeData("model", e.target.value)}
+                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                          <option value="GPT-4">GPT-4</option>
+                          <option value="GPT-3.5">GPT-3.5</option>
+                          <option value="Claude">Claude</option>
+                          <option value="Gemini">Gemini</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-500">System Prompt</label>
+                        <Textarea
+                          value={selectedNode.prompt || ""}
+                          onChange={(e) => updateNodeData("prompt", e.target.value)}
+                          rows={4}
+                          placeholder="Enter system prompt..."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-500">
+                          Temperature: {selectedNode.temperature ?? 0.7}
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={2}
+                          step={0.1}
+                          value={selectedNode.temperature ?? 0.7}
+                          onChange={(e) => updateNodeData("temperature", parseFloat(e.target.value))}
+                          className="w-full accent-indigo-500"
+                        />
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>Precise</span>
+                          <span>Creative</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedNode.type === "condition" && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-slate-500">Condition Expression</label>
+                      <Textarea
+                        value={selectedNode.condition || ""}
+                        onChange={(e) => updateNodeData("condition", e.target.value)}
+                        rows={3}
+                        placeholder="e.g. intent === 'support'"
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-200">
+                    <Button variant="destructive" size="sm" className="w-full" onClick={deleteNode}>
+                      <Trash2 className="w-4 h-4 mr-1.5" />
+                      Delete Node
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Click on a node in the canvas to view and edit its properties.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

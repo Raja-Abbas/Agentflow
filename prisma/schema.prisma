@@ -32,15 +32,27 @@ model Agent {
 }
 
 model Flow {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
+  nodes     String        @default("[]")
+  edges     String        @default("[]")
+  agentId   String
+  agent     Agent         @relation(fields: [agentId], references: [id])
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  versions  FlowVersion[]
+}
+
+model FlowVersion {
+  id        String   @id @default(cuid())
+  flowId    String
+  flow      Flow     @relation(fields: [flowId], references: [id])
+  version   Int
+  name      String?
   nodes     String   @default("[]")
   edges     String   @default("[]")
-  agentId   String
-  agent     Agent    @relation(fields: [agentId], references: [id])
-  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Conversation {

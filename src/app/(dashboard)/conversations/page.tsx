@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import {
   MoreVertical,
   Phone,
   Video,
+  Mic,
+  MicOff,
 } from "lucide-react";
 
 const conversations = [
@@ -120,6 +122,32 @@ export default function ConversationsPage() {
   const [activeConversation, setActiveConversation] = useState("1");
   const [searchQuery, setSearchQuery] = useState("");
   const [messageInput, setMessageInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setMessageInput((prev) => prev + transcript);
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
 
   const filteredConversations = conversations.filter(
     (c) =>
@@ -272,9 +300,18 @@ export default function ConversationsPage() {
         {/* Message Input */}
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
-              <Paperclip className="w-4 h-4" />
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-9 w-9 shrink-0 ${isListening ? "bg-red-100 text-red-500" : ""}`}
+                onClick={isListening ? stopListening : startListening}
+                title={isListening ? "Stop listening" : "Voice input"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                <Paperclip className="w-4 h-4" />
+              </Button>
             <div className="flex-1 relative">
               <Input
                 placeholder="Type a message..."
