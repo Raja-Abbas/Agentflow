@@ -195,27 +195,41 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = "DialogDescription"
 
-const DialogClose = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, ...props }, ref) => {
-  const { setOpen } = useDialog()
+interface DialogCloseProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean
+}
 
-  return (
-    <button
-      ref={ref}
-      className={cn(
-        "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:pointer-events-none dark:ring-offset-slate-950 dark:focus:ring-indigo-400",
-        className
-      )}
-      onClick={() => setOpen(false)}
-      {...props}
-    >
-      ✕
-      <span className="sr-only">Close</span>
-    </button>
-  )
-})
+const DialogClose = React.forwardRef<HTMLButtonElement, DialogCloseProps>(
+  ({ className, asChild, children, ...props }, ref) => {
+    const { setOpen } = useDialog()
+
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children as React.ReactElement<any>, {
+        ref,
+        onClick: (e: React.MouseEvent) => {
+          setOpen(false);
+          (children as any).props?.onClick?.(e)
+        },
+      })
+    }
+
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:pointer-events-none dark:ring-offset-slate-950 dark:focus:ring-indigo-400",
+          className
+        )}
+        onClick={() => setOpen(false)}
+        {...props}
+      >
+        {children}
+        ✕
+        <span className="sr-only">Close</span>
+      </button>
+    )
+  }
+)
 DialogClose.displayName = "DialogClose"
 
 export {
