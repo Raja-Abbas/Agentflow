@@ -183,8 +183,11 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button>Launch Dashboard</Button>
+            <Link href="/login">
+              <Button variant="ghost">Sign In</Button>
+            </Link>
+            <Link href="/register">
+              <Button>Get Started Free</Button>
             </Link>
 
             {/* Mobile menu button */}
@@ -240,7 +243,7 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/dashboard">
+              <Link href="/register">
                 <Button size="lg" className="gap-2">
                   Start building <ArrowRight className="h-4 w-4" />
                 </Button>
