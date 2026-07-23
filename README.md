@@ -59,20 +59,25 @@ Open [http://localhost:3000](http://localhost:3000).
 src/
 ├── app/
 │   ├── (dashboard)/
-│   │   ├── dashboard/page.tsx    # Dashboard overview with charts
-│   │   ├── agents/page.tsx       # Agent management
-│   │   ├── flows/page.tsx        # Visual flow editor
-│   │   ├── conversations/page.tsx # Chat interface
-│   │   ├── analytics/page.tsx    # Analytics dashboard
-│   │   └── settings/page.tsx     # Settings & API keys
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Landing page
+│   │   ├── dashboard/page.tsx     # Dashboard overview with charts
+│   │   ├── agents/page.tsx        # Agent management
+│   │   ├── flows/page.tsx         # Visual flow editor + debug + versioning
+│   │   ├── conversations/page.tsx # Chat interface with live LLM calls
+│   │   ├── analytics/page.tsx     # Analytics dashboard
+│   │   └── settings/page.tsx      # Settings, API keys, AI model keys
+│   ├── embed/page.tsx             # Embeddable chat widget page
+│   ├── layout.tsx                 # Root layout
+│   └── page.tsx                   # Landing page
 ├── components/
-│   ├── layout/                   # Sidebar, header, dashboard layout
-│   └── ui/                       # Reusable UI components
-└── lib/
-    ├── db.ts                     # Prisma client
-    └── utils.ts                  # Utilities
+│   ├── layout/                    # Sidebar, header, dashboard layout
+│   ├── ui/                        # Reusable UI components
+│   └── theme-provider.tsx         # Dark mode provider
+├── lib/
+│   ├── db.ts                      # Prisma client
+│   ├── llm.ts                    # LLM API service (OpenAI, Claude, Gemini)
+│   └── utils.ts                   # Utilities
+└── public/
+    └── widget.js                  # Standalone embed script
 ```
 
 ## License
