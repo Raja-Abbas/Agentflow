@@ -119,7 +119,7 @@ function modelColor(model: string) {
     case "Gemini":
       return "bg-blue-100 text-blue-700";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
   }
 }
 
@@ -140,8 +140,8 @@ export default function AgentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
-          <p className="text-slate-500">Manage your AI agents</p>
+          <h1 className="text-3xl font-bold tracking-tight dark:text-slate-100">Agents</h1>
+          <p className="text-slate-500 dark:text-slate-400">Manage your AI agents</p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -176,7 +176,7 @@ export default function AgentsPage() {
       {filteredAgents.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Bot className="h-12 w-12 text-slate-300" />
+            <Bot className="h-12 w-12 text-slate-300 dark:text-slate-600" />
             <h3 className="mt-4 text-lg font-medium">No agents found</h3>
             <p className="text-sm text-slate-500">
               Try adjusting your search or filter to find what you&apos;re
@@ -187,16 +187,16 @@ export default function AgentsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredAgents.map((agent) => (
-            <Card key={agent.id} className="transition-shadow hover:shadow-md">
+            <Card key={agent.id} className="transition-shadow hover:shadow-md dark:hover:shadow-slate-800/50">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
-                      <Bot className="h-5 w-5 text-indigo-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40">
+                      <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div>
                       <CardTitle className="text-base">{agent.name}</CardTitle>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {agent.description}
                       </p>
                     </div>
@@ -215,7 +215,7 @@ export default function AgentsPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-slate-500 mb-4">
+                <div className="flex items-center justify-between text-sm text-slate-500 mb-4 dark:text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <MessageSquare className="h-4 w-4" />
                     <span>{formatNumber(agent.conversations)} conversations</span>
@@ -223,7 +223,7 @@ export default function AgentsPage() {
                   <span>Last active: {agent.lastActive}</span>
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-slate-200 pt-4">
+                <div className="flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                   <Button variant="ghost" size="icon" title="Edit">
                     <Pencil className="h-4 w-4" />
                   </Button>

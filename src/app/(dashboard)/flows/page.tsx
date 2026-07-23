@@ -182,7 +182,7 @@ const paletteNodes = [
 const nodeColors: Record<string, string> = {
   trigger: "bg-emerald-500 border-emerald-600 text-white",
   "ai-response": "bg-indigo-500 border-indigo-600 text-white",
-  condition: "bg-amber-400 border-amber-500 text-slate-900",
+  condition: "bg-amber-400 border-amber-500 text-slate-900 dark:text-slate-100",
   "user-input": "bg-blue-500 border-blue-600 text-white",
   "api-call": "bg-purple-500 border-purple-600 text-white",
   end: "bg-red-500 border-red-600 text-white",
@@ -498,7 +498,7 @@ export default function FlowEditorPage() {
   return (
     <div className="flex flex-col h-screen">
       {/* Top Toolbar */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 h-14 shrink-0">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 h-14 shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <ArrowLeft className="w-4 h-4" />
@@ -508,7 +508,7 @@ export default function FlowEditorPage() {
             <input
               value={flowName}
               onChange={(e) => setFlowName(e.target.value)}
-              className="text-lg font-semibold text-slate-900 bg-transparent border-none outline-none focus:ring-0"
+              className="text-lg font-semibold text-slate-900 dark:text-slate-100 bg-transparent border-none outline-none focus:ring-0"
             />
           </div>
         </div>
@@ -529,7 +529,7 @@ export default function FlowEditorPage() {
             <LinkIcon className="w-4 h-4 mr-1.5" />
             Share
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowVersionPanel(!showVersionPanel)} className={showVersionPanel ? "bg-indigo-50 border-indigo-300" : ""}>
+          <Button variant="outline" size="sm" onClick={() => setShowVersionPanel(!showVersionPanel)} className={showVersionPanel ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300" : ""}>
             <History className="w-4 h-4 mr-1.5" />
             Versions
             {versions.length > 0 && (
@@ -553,9 +553,9 @@ export default function FlowEditorPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Version Panel */}
         {showVersionPanel && (
-          <Card className="w-72 shrink-0 rounded-none border-r border-slate-200 overflow-y-auto">
+          <Card className="w-72 shrink-0 rounded-none border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-700">
+              <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Version History
               </CardTitle>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowVersionPanel(false)}>
@@ -564,22 +564,22 @@ export default function FlowEditorPage() {
             </CardHeader>
             <CardContent className="p-4 pt-2 space-y-2">
               {versions.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">
+                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
                   No versions saved yet.<br />Click &quot;Save Version&quot; to create one.
                 </p>
               ) : (
                 [...versions].reverse().map((v) => (
                   <div
                     key={v.id}
-                    className="rounded-lg border border-slate-200 p-3 hover:border-indigo-300 transition-colors"
+                    className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-900">v{v.version}</span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">v{v.version}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
                         {new Date(v.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mb-2">{v.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{v.name}</p>
                     <div className="flex gap-1.5">
                       <Button
                         variant="outline"
@@ -617,9 +617,9 @@ export default function FlowEditorPage() {
         )}
 
         {/* Left Panel - Node Palette */}
-        <Card className="w-60 shrink-0 rounded-none border-r border-slate-200 overflow-y-auto">
+        <Card className="w-60 shrink-0 rounded-none border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
           <CardHeader className="p-4">
-            <CardTitle className="text-sm font-semibold text-slate-700">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Node Palette
             </CardTitle>
           </CardHeader>
@@ -632,15 +632,15 @@ export default function FlowEditorPage() {
                   e.dataTransfer.setData("application/reactflow", item.type);
                   e.dataTransfer.effectAllowed = "move";
                 }}
-                className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 cursor-grab hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
               >
                 <div className={`${item.color} p-1.5 rounded-md text-white`}>
                   <item.icon className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {item.label}
                 </span>
-                <GripVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                <GripVertical className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 ml-auto" />
               </div>
             ))}
           </CardContent>
@@ -649,7 +649,7 @@ export default function FlowEditorPage() {
         {/* Center - Canvas */}
         <div
           ref={canvasRef}
-          className="flex-1 bg-slate-50 relative overflow-auto"
+          className="flex-1 bg-slate-50 dark:bg-slate-950 relative overflow-auto"
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
           onDrop={handleDrop}
           onClick={() => setSelectedNodeId(null)}
@@ -678,7 +678,7 @@ export default function FlowEditorPage() {
                   {edge.label && (
                     <>
                       <rect x={mid.x - 30} y={mid.y - 10} width={60} height={20} rx={4} fill="white" stroke="#e2e8f0" />
-                      <text x={mid.x} y={mid.y + 4} textAnchor="middle" className="text-xs fill-slate-600 font-medium">
+                      <text x={mid.x} y={mid.y + 4} textAnchor="middle" className="text-xs fill-slate-600 dark:fill-slate-400 font-medium">
                         {edge.label}
                       </text>
                     </>
@@ -690,7 +690,7 @@ export default function FlowEditorPage() {
 
           {/* Debug mode indicator */}
           {debugMode && (
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-medium">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-xs font-medium">
               <Bug className="w-3.5 h-3.5" />
               Debug Mode — Step through each node
             </div>
@@ -706,10 +706,10 @@ export default function FlowEditorPage() {
                 draggable={!debugMode}
                 onDragEnd={(e) => !debugMode && handleDragEnd(node.id, e)}
                 onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
-                className={`absolute cursor-grab active:cursor-grabbing rounded-lg border-2 px-4 py-3 shadow-md min-w-[140px] transition-all ${
+                className={`absolute cursor-grab active:cursor-grabbing rounded-lg border-2 px-4 py-3 shadow-md dark:shadow-slate-900/50 min-w-[140px] transition-all ${
                   nodeColors[node.type] || "bg-slate-500 border-slate-600 text-white"
-                } ${selectedNodeId === node.id ? "ring-2 ring-indigo-400 ring-offset-2" : ""}
-                  ${isDebugActive ? "ring-2 ring-amber-400 ring-offset-2 shadow-lg shadow-amber-200 scale-105" : ""}
+                } ${selectedNodeId === node.id ? "ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900" : ""}
+                  ${isDebugActive ? "ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-slate-900 shadow-lg shadow-amber-200 dark:shadow-amber-900/50 scale-105" : ""}
                   ${isDebugVisited && !isDebugActive ? "opacity-70" : ""}
                 `}
                 style={{ left: node.x, top: node.y }}
@@ -731,11 +731,11 @@ export default function FlowEditorPage() {
 
         {/* Right Panel - Node Properties or Debug Panel */}
         {showDebugPanel && debugMode ? (
-          <Card className="w-[350px] shrink-0 rounded-none border-l border-slate-200 overflow-y-auto flex flex-col">
-            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-slate-200">
+          <Card className="w-[350px] shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto flex flex-col">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Bug className="w-4 h-4 text-amber-500" />
-                <CardTitle className="text-sm font-semibold text-slate-700">
+                <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Debug: Step-through
                 </CardTitle>
               </div>
@@ -746,19 +746,19 @@ export default function FlowEditorPage() {
 
             {/* Current Node Info */}
             {currentDebugNodeData && (
-              <div className="p-4 border-b border-slate-200 bg-amber-50/50">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-amber-50/50 dark:bg-amber-950/30">
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`p-1 rounded ${nodeColors[currentDebugNodeData.type] || "bg-slate-500"} text-white`}>
                     {nodeIcons[currentDebugNodeData.type]}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{currentDebugNodeData.label}</p>
-                    <p className="text-xs text-slate-500 capitalize">{currentDebugNodeData.type.replace("-", " ")}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{currentDebugNodeData.label}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{currentDebugNodeData.type.replace("-", " ")}</p>
                   </div>
                 </div>
                 {currentDebugNodeData.type === "condition" && (
                   <div className="mt-2">
-                    <label className="text-xs font-medium text-slate-500">Test Decision Branch</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Test Decision Branch</label>
                     <div className="flex gap-1.5 mt-1">
                       {edges.filter((e) => e.source === currentDebugNodeData.id).map((edge) => (
                         <Button
@@ -789,18 +789,18 @@ export default function FlowEditorPage() {
                       msg.role === "user"
                         ? "bg-indigo-600 text-white"
                         : msg.content.startsWith("🟢")
-                        ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                        ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
                         : msg.content.startsWith("🤖")
-                        ? "bg-indigo-50 border border-indigo-200 text-indigo-800"
+                        ? "bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300"
                         : msg.content.startsWith("🔀")
-                        ? "bg-amber-50 border border-amber-200 text-amber-800"
+                        ? "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300"
                         : msg.content.startsWith("🔴")
-                        ? "bg-red-50 border border-red-200 text-red-800"
+                        ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
                         : msg.content.startsWith("🌐")
-                        ? "bg-purple-50 border border-purple-200 text-purple-800"
+                        ? "bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300"
                         : msg.content.startsWith("💬")
-                        ? "bg-blue-50 border border-blue-200 text-blue-800"
-                        : "bg-slate-100 text-slate-800"
+                        ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-800"
                     }`}
                   >
                     {msg.content}
@@ -809,7 +809,7 @@ export default function FlowEditorPage() {
               ))}
               {!currentDebugNode && debugMessages.length > 0 && (
                 <div className="text-center pt-4">
-                  <p className="text-sm font-medium text-slate-700">Flow complete</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Flow complete</p>
                   <Button variant="outline" size="sm" className="mt-2" onClick={startDebug}>
                     <RotateCcw className="w-3 h-3 mr-1" /> Restart
                   </Button>
@@ -818,7 +818,7 @@ export default function FlowEditorPage() {
             </div>
 
             {/* Debug Controls */}
-            <div className="p-4 border-t border-slate-200 space-y-2">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
               {currentDebugNodeData?.type === "user-input" && (
                 <div className="flex items-center gap-2">
                   <Input
@@ -840,7 +840,7 @@ export default function FlowEditorPage() {
                     {isListening ? (
                       <MicOff className="w-4 h-4 text-red-500" />
                     ) : (
-                      <Mic className="w-4 h-4 text-slate-500" />
+                      <Mic className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     )}
                   </Button>
                   <Button size="icon" className="h-9 w-9 shrink-0" onClick={stepForward}>
@@ -857,16 +857,16 @@ export default function FlowEditorPage() {
                   )}
                 </Button>
               )}
-              <div className="flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
                 <span>Step {debugSteps.length}</span>
                 <span>{debugSteps.filter((s) => s.nodeId).length} nodes visited</span>
               </div>
             </div>
           </Card>
         ) : (
-          <Card className="w-[280px] shrink-0 rounded-none border-l border-slate-200 overflow-y-auto">
+          <Card className="w-[280px] shrink-0 rounded-none border-l border-slate-200 dark:border-slate-700 overflow-y-auto">
             <CardHeader className="p-4">
-              <CardTitle className="text-sm font-semibold text-slate-700">
+              <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {selectedNode ? "Node Properties" : "Select a Node"}
               </CardTitle>
             </CardHeader>
@@ -874,7 +874,7 @@ export default function FlowEditorPage() {
               {selectedNode ? (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500">Name</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Name</label>
                     <Input
                       value={selectedNode.label}
                       onChange={(e) => updateNodeData("label", e.target.value)}
@@ -882,8 +882,8 @@ export default function FlowEditorPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500">Type</label>
-                    <div className="text-sm font-medium text-slate-700 bg-slate-100 px-3 py-2 rounded-md capitalize">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Type</label>
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-md capitalize">
                       {selectedNode.type.replace("-", " ")}
                     </div>
                   </div>
@@ -891,11 +891,11 @@ export default function FlowEditorPage() {
                   {selectedNode.type === "ai-response" && (
                     <>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-slate-500">Model</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Model</label>
                         <select
                           value={selectedNode.model || ""}
                           onChange={(e) => updateNodeData("model", e.target.value)}
-                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                         >
                           <option value="GPT-4">GPT-4</option>
                           <option value="GPT-3.5">GPT-3.5</option>
@@ -904,7 +904,7 @@ export default function FlowEditorPage() {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-slate-500">System Prompt</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">System Prompt</label>
                         <Textarea
                           value={selectedNode.prompt || ""}
                           onChange={(e) => updateNodeData("prompt", e.target.value)}
@@ -913,7 +913,7 @@ export default function FlowEditorPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-slate-500">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
                           Temperature: {selectedNode.temperature ?? 0.7}
                         </label>
                         <input
@@ -925,7 +925,7 @@ export default function FlowEditorPage() {
                           onChange={(e) => updateNodeData("temperature", parseFloat(e.target.value))}
                           className="w-full accent-indigo-500"
                         />
-                        <div className="flex justify-between text-xs text-slate-400">
+                        <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
                           <span>Precise</span>
                           <span>Creative</span>
                         </div>
@@ -935,7 +935,7 @@ export default function FlowEditorPage() {
 
                   {selectedNode.type === "condition" && (
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-500">Condition Expression</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Condition Expression</label>
                       <Textarea
                         value={selectedNode.condition || ""}
                         onChange={(e) => updateNodeData("condition", e.target.value)}
@@ -945,7 +945,7 @@ export default function FlowEditorPage() {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-slate-200">
+                  <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                     <Button variant="destructive" size="sm" className="w-full" onClick={deleteNode}>
                       <Trash2 className="w-4 h-4 mr-1.5" />
                       Delete Node
@@ -953,7 +953,7 @@ export default function FlowEditorPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Click on a node in the canvas to view and edit its properties.
                 </p>
               )}
@@ -976,7 +976,7 @@ export default function FlowEditorPage() {
               {flowTemplates.map((template) => (
                 <div
                   key={template.id}
-                  className="rounded-lg border border-slate-200 p-4 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
                   onClick={() => loadTemplate(template)}
                 >
                   <div className="flex items-center gap-3">
@@ -984,8 +984,8 @@ export default function FlowEditorPage() {
                       <Bot className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">{template.name}</h3>
-                      <p className="text-xs text-slate-500">{template.description}</p>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{template.name}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{template.description}</p>
                     </div>
                   </div>
                   <div className="mt-2 flex gap-1.5">

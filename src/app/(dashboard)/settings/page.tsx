@@ -148,10 +148,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           Settings
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Manage your account and preferences
         </p>
       </div>
@@ -185,14 +185,14 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400">
                   RA
                 </div>
                 <div>
                   <Button variant="outline" size="sm">
                     Upload avatar
                   </Button>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     JPG, PNG or GIF. Max 2MB.
                   </p>
                 </div>
@@ -245,15 +245,15 @@ export default function SettingsPage() {
                 {keys.map((apiKey) => (
                   <div
                     key={apiKey.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 p-4"
+                    className="flex items-center justify-between rounded-lg border border-slate-200 p-4 dark:border-slate-700"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                        <Shield className="h-5 w-5 text-slate-600" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                        <Shield className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-slate-900">
+                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
                             {apiKey.name}
                           </span>
                           <Badge
@@ -264,8 +264,8 @@ export default function SettingsPage() {
                             {apiKey.status}
                           </Badge>
                         </div>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
-                          <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
+                        <div className="mt-1 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono dark:bg-slate-800">
                             {apiKey.key}
                           </code>
                           <span>Last used: {apiKey.lastUsed}</span>
@@ -277,7 +277,7 @@ export default function SettingsPage() {
                       size="icon"
                       onClick={() => handleDeleteKey(apiKey.id)}
                     >
-                      <Trash2 className="h-4 w-4 text-slate-400" />
+                      <Trash2 className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                     </Button>
                   </div>
                 ))}
@@ -300,10 +300,10 @@ export default function SettingsPage() {
                   <div key={notification.id}>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-slate-900">
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                           {notification.label}
                         </p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {notification.description}
                         </p>
                       </div>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                           toggles[notification.id]
                             ? "bg-indigo-600"
-                            : "bg-slate-200"
+                            : "bg-slate-200 dark:bg-slate-700"
                         }`}
                       >
                         <span
@@ -342,13 +342,13 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 p-6">
+                <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-800 dark:bg-indigo-950/30">
                   <div>
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-slate-900">Pro</h3>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Pro</h3>
                       <Badge>Current plan</Badge>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                       $29/month &middot; Renews on Aug 15, 2026
                     </p>
                   </div>
@@ -367,13 +367,13 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Messages</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-slate-600 dark:text-slate-400">Messages</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
                       {formatNumber(8450)} / {formatNumber(10000)}
                     </span>
                   </div>
                   <Progress value={84.5} />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     84.5% used &middot; {formatNumber(1550)} messages remaining
                   </p>
                 </div>
@@ -381,17 +381,17 @@ export default function SettingsPage() {
                 <Separator />
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="text-sm text-slate-500">Chatbots</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">7 / 10</p>
+                  <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Chatbots</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">7 / 10</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="text-sm text-slate-500">Team members</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">3 / 5</p>
+                  <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Team members</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">3 / 5</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="text-sm text-slate-500">Storage</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">2.1 GB / 10 GB</p>
+                  <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Storage</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">2.1 GB / 10 GB</p>
                   </div>
                 </div>
 
@@ -469,7 +469,7 @@ export default function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
-            <code className="block w-full rounded-lg border border-slate-200 bg-slate-50 p-3 pr-20 font-mono text-sm break-all">
+            <code className="block w-full rounded-lg border border-slate-200 bg-slate-50 p-3 pr-20 font-mono text-sm break-all dark:border-slate-700 dark:bg-slate-800">
               {newKeyValue}
             </code>
             <Button

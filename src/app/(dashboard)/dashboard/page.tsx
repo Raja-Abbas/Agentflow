@@ -100,13 +100,13 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">
+              <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {stat.label}
               </CardTitle>
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="text-3xl font-bold dark:text-slate-100">
                 {formatNumber(stat.value)}
               </div>
             </CardContent>
@@ -172,15 +172,15 @@ export default function DashboardPage() {
               {recentConversations.map((conversation) => (
                 <div
                   key={conversation.name}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 p-4"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 p-4 dark:border-slate-700"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
-                      <MessageSquare className="h-5 w-5 text-indigo-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40">
+                      <MessageSquare className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div>
-                      <p className="font-medium">{conversation.name}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="font-medium dark:text-slate-100">{conversation.name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {conversation.messages} messages
                       </p>
                     </div>

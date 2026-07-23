@@ -142,10 +142,10 @@ export default function AnalyticsPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Analytics
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Track your chatbot performance and usage metrics
           </p>
         </div>
@@ -167,13 +167,13 @@ export default function AnalyticsPage() {
         {stats.map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">
+              <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {stat.label}
               </CardTitle>
-              <stat.icon className="h-4 w-4 text-slate-400" />
+              <stat.icon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {typeof stat.value === "number"
                   ? formatNumber(stat.value)
                   : stat.value}
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
                   <ArrowDown className="h-3 w-3 text-emerald-500" />
                 )}
                 <span className="text-emerald-500">{stat.change}</span>
-                <span className="text-slate-400">vs last period</span>
+                <span className="text-slate-400 dark:text-slate-500">vs last period</span>
               </div>
             </CardContent>
           </Card>
@@ -212,8 +212,8 @@ export default function AnalyticsPage() {
                   <YAxis stroke="#94a3b8" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
@@ -250,8 +250,8 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
@@ -276,8 +276,8 @@ export default function AnalyticsPage() {
                   <YAxis stroke="#94a3b8" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
@@ -309,8 +309,8 @@ export default function AnalyticsPage() {
                   <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v}%`} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
@@ -331,7 +331,7 @@ export default function AnalyticsPage() {
                     className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: model.color }}
                   />
-                  <span className="text-slate-600">
+                   <span className="text-slate-600 dark:text-slate-400">
                     {model.name} ({model.value}%)
                   </span>
                 </div>
@@ -349,20 +349,20 @@ export default function AnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="pb-3 text-left text-sm font-medium text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700">
+                  <th className="pb-3 text-left text-sm font-medium text-slate-500 dark:text-slate-400">
                     Agent
                   </th>
-                  <th className="pb-3 text-right text-sm font-medium text-slate-500">
+                  <th className="pb-3 text-right text-sm font-medium text-slate-500 dark:text-slate-400">
                     Conversations
                   </th>
-                  <th className="pb-3 text-right text-sm font-medium text-slate-500">
+                  <th className="pb-3 text-right text-sm font-medium text-slate-500 dark:text-slate-400">
                     Avg Messages
                   </th>
-                  <th className="pb-3 text-right text-sm font-medium text-slate-500">
+                  <th className="pb-3 text-right text-sm font-medium text-slate-500 dark:text-slate-400">
                     Satisfaction
                   </th>
-                  <th className="pb-3 text-right text-sm font-medium text-slate-500">
+                  <th className="pb-3 text-right text-sm font-medium text-slate-500 dark:text-slate-400">
                     Trend
                   </th>
                 </tr>
@@ -371,15 +371,15 @@ export default function AnalyticsPage() {
                 {topPerformingAgents.map((agent) => (
                   <tr
                     key={agent.name}
-                    className="border-b border-slate-100 last:border-0"
+                    className="border-b border-slate-100 last:border-0 dark:border-slate-800"
                   >
-                    <td className="py-3 text-sm font-medium text-slate-900">
+                    <td className="py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       {agent.name}
                     </td>
-                    <td className="py-3 text-right text-sm text-slate-600">
+                    <td className="py-3 text-right text-sm text-slate-600 dark:text-slate-400">
                       {formatNumber(agent.conversations)}
                     </td>
-                    <td className="py-3 text-right text-sm text-slate-600">
+                    <td className="py-3 text-right text-sm text-slate-600 dark:text-slate-400">
                       {agent.avgMessages}
                     </td>
                     <td className="py-3 text-right">
