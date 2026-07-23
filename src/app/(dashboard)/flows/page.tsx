@@ -37,6 +37,7 @@ import {
   Download,
   Upload,
   Link as LinkIcon,
+  Bookmark,
 } from "lucide-react";
 
 interface FlowNode {
@@ -241,6 +242,36 @@ export default function FlowEditorPage() {
   const [isListening, setIsListening] = useState(false);
   const [flowName, setFlowName] = useState("Customer Support Flow");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [remoteEditAlert, setRemoteEditAlert] = useState<string | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  const broadcastChange = useCallback((newNodes: FlowNode[], actionLabel: string) => {
+    try {
+      channelRef.current?.postMessage({
+        type: "flow-update",
+        nodes: newNodes,
+        label: actionLabel,
+      });
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const channel = new BroadcastChannel("agentflow-collab");
+      channelRef.current = channel;
+      channel.onmessage = (event) => {
+        const data = event.data;
+        if (data.type === "flow-update" && data.nodes) {
+          setNodes(data.nodes);
+          setRemoteEditAlert(`Updated from another tab: "${data.label || 'Unknown'}"`);
+          setTimeout(() => setRemoteEditAlert(null), 3000);
+        }
+      };
+    } catch {}
+    return () => {
+      try { channelRef.current?.close(); } catch {}
+    };
+  }, []);
 
   const pushHistory = useCallback((newNodes: FlowNode[]) => {
     setHistory((prev) => {
@@ -323,10 +354,11 @@ export default function FlowEditorPage() {
           setNodes(decoded.nodes);
           pushHistory(decoded.nodes);
           if (decoded.name) setFlowName(decoded.name);
+          setTimeout(() => broadcastChange(decoded.nodes, "Shared flow"), 0);
         }
       } catch { /* ignore invalid URLs */ }
     }
-  }, [pushHistory]);
+  }, [pushHistory, broadcastChange]);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const currentDebugNodeData = nodes.find((n) => n.id === currentDebugNode);
@@ -334,15 +366,17 @@ export default function FlowEditorPage() {
   const updateNodeData = useCallback(
     (field: string, value: string | number) => {
       if (!selectedNodeId) return;
+      const nodeLabel = selectedNode?.label || "node";
       setNodes((prev) => {
         const next = prev.map((n) =>
           n.id === selectedNodeId ? { ...n, [field]: value } : n
         );
         pushHistory(next);
+        setTimeout(() => broadcastChange(next, `Edited ${nodeLabel}`), 0);
         return next;
       });
     },
-    [selectedNodeId, pushHistory]
+    [selectedNodeId, pushHistory, broadcastChange, selectedNode]
   );
 
   const deleteNode = useCallback(() => {
@@ -350,10 +384,11 @@ export default function FlowEditorPage() {
     setNodes((prev) => {
       const next = prev.filter((n) => n.id !== selectedNodeId);
       pushHistory(next);
+      setTimeout(() => broadcastChange(next, "Deleted node"), 0);
       return next;
     });
     setSelectedNodeId(null);
-  }, [selectedNodeId, pushHistory]);
+  }, [selectedNodeId, pushHistory, broadcastChange]);
 
   const handleDragEnd = useCallback(
     (id: string, e: React.DragEvent) => {
@@ -365,10 +400,11 @@ export default function FlowEditorPage() {
       setNodes((prev) => {
         const next = prev.map((n) => (n.id === id ? { ...n, x: Math.max(0, x), y: Math.max(0, y) } : n));
         pushHistory(next);
+        setTimeout(() => broadcastChange(next, "Moved node"), 0);
         return next;
       });
     },
-    [pushHistory]
+    [pushHistory, broadcastChange]
   );
 
   const handleDrop = useCallback(
@@ -393,10 +429,11 @@ export default function FlowEditorPage() {
       setNodes((prev) => {
         const next = [...prev, newNode];
         pushHistory(next);
+        setTimeout(() => broadcastChange(next, `Added "${label}"`), 0);
         return next;
       });
     },
-    [pushHistory]
+    [pushHistory, broadcastChange]
   );
 
   const saveVersion = useCallback(() => {
@@ -416,7 +453,8 @@ export default function FlowEditorPage() {
     pushHistory(JSON.parse(JSON.stringify(version.nodes)));
     setSelectedNodeId(null);
     setShowVersionPanel(false);
-  }, [pushHistory]);
+    setTimeout(() => broadcastChange(JSON.parse(JSON.stringify(version.nodes)), `Restored v${version.version}`), 0);
+  }, [pushHistory, broadcastChange]);
 
   const exportFlow = useCallback(() => {
     const data = { name: flowName, nodes, edges };
@@ -444,20 +482,22 @@ export default function FlowEditorPage() {
             setNodes(data.nodes);
             pushHistory(data.nodes);
             if (data.name) setFlowName(data.name);
+            setTimeout(() => broadcastChange(data.nodes, "Imported flow"), 0);
           }
         } catch { /* ignore invalid files */ }
       };
       reader.readAsText(file);
     };
     input.click();
-  }, [pushHistory]);
+  }, [pushHistory, broadcastChange]);
 
   const loadTemplate = useCallback((template: FlowTemplate) => {
     setNodes(JSON.parse(JSON.stringify(template.nodes)));
     pushHistory(JSON.parse(JSON.stringify(template.nodes)));
     setFlowName(template.name);
     setShowTemplateDialog(false);
-  }, [pushHistory]);
+    setTimeout(() => broadcastChange(JSON.parse(JSON.stringify(template.nodes)), `Loaded "${template.name}" template`), 0);
+  }, [pushHistory, broadcastChange]);
 
   const copyShareLink = useCallback(() => {
     const data = { name: flowName, nodes, edges };
@@ -465,6 +505,26 @@ export default function FlowEditorPage() {
     const url = `${window.location.origin}${window.location.pathname}?flow=${encoded}`;
     navigator.clipboard.writeText(url);
   }, [flowName, nodes, edges]);
+
+  const saveAsTemplate = useCallback(() => {
+    const customTemplates = JSON.parse(localStorage.getItem("af_custom_templates") || "[]");
+    const newTemplate: FlowTemplate = {
+      id: `custom-${Date.now()}`,
+      name: flowName,
+      description: "A custom flow you built",
+      icon: "Bot",
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+    };
+    customTemplates.push(newTemplate);
+    localStorage.setItem("af_custom_templates", JSON.stringify(customTemplates));
+  }, [flowName, nodes, edges]);
+
+  const deleteCustomTemplate = useCallback((templateId: string) => {
+    const customTemplates = JSON.parse(localStorage.getItem("af_custom_templates") || "[]");
+    const filtered = customTemplates.filter((t: FlowTemplate) => t.id !== templateId);
+    localStorage.setItem("af_custom_templates", JSON.stringify(filtered));
+  }, []);
 
   const startDebug = useCallback(() => {
     const triggerNode = nodes.find((n) => n.type === "trigger");
@@ -632,6 +692,10 @@ export default function FlowEditorPage() {
           <Button variant="outline" size="sm" onClick={copyShareLink} title="Copy shareable link">
             <LinkIcon className="w-4 h-4 mr-1.5" />
             Share
+          </Button>
+          <Button variant="outline" size="sm" onClick={saveAsTemplate} title="Save current flow as a template">
+            <Bookmark className="w-4 h-4 mr-1.5" />
+            Save Template
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowVersionPanel(!showVersionPanel)} className={showVersionPanel ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300" : ""}>
             <History className="w-4 h-4 mr-1.5" />
@@ -804,6 +868,12 @@ export default function FlowEditorPage() {
             <div className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-xs font-medium">
               <Bug className="w-3.5 h-3.5" />
               Debug Mode — Step through each node
+            </div>
+          )}
+          {remoteEditAlert && (
+            <div className="absolute top-14 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 border border-blue-300 text-blue-800 text-xs font-medium animate-pulse">
+              <Bot className="w-3.5 h-3.5" />
+              {remoteEditAlert}
             </div>
           )}
 
@@ -1089,28 +1159,77 @@ export default function FlowEditorPage() {
                 <X className="w-4 h-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {flowTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
-                  onClick={() => loadTemplate(template)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100">
-                      <Bot className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{template.name}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{template.description}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex gap-1.5">
-                    <Badge variant="outline" className="text-[10px]">{template.nodes.length} nodes</Badge>
-                    <Badge variant="outline" className="text-[10px]">{template.edges.length} edges</Badge>
+            <CardContent className="space-y-4">
+              {flowTemplates.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Built-in</h3>
+                  <div className="space-y-2">
+                    {flowTemplates.map((template) => (
+                      <div
+                        key={template.id}
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                        onClick={() => loadTemplate(template)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                            <Bot className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{template.name}</h3>
+                            <p className="text-xs text-slate-500">{template.description}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex gap-1.5">
+                          <Badge variant="outline" className="text-[10px]">{template.nodes.length} nodes</Badge>
+                          <Badge variant="outline" className="text-[10px]">{template.edges.length} edges</Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {(() => {
+                const customTemplates: FlowTemplate[] = JSON.parse(localStorage.getItem("af_custom_templates") || "[]");
+                if (customTemplates.length === 0) return null;
+                return (
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">My Templates</h3>
+                    <div className="space-y-2">
+                      {customTemplates.map((template) => (
+                        <div
+                          key={template.id}
+                          className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors group"
+                          onClick={() => loadTemplate(template)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                              <Bot className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{template.name}</h3>
+                              <p className="text-xs text-slate-500">{template.description}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => { e.stopPropagation(); deleteCustomTemplate(template.id); setShowTemplateDialog(false); setTimeout(() => setShowTemplateDialog(true), 50); }}
+                              title="Delete template"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                            </Button>
+                          </div>
+                          <div className="mt-2 flex gap-1.5">
+                            <Badge variant="outline" className="text-[10px]">{template.nodes.length} nodes</Badge>
+                            <Badge variant="outline" className="text-[10px]">{template.edges.length} edges</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
