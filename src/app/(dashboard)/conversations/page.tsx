@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Send, Bot, User, MoreVertical, Mic, MicOff, Plus, Trash2 } from "lucide-react";
+import { Search, Send, Bot, User, Mic, MicOff, Plus, Trash2 } from "lucide-react";
 import { callLLM } from "@/lib/llm";
 
 interface Message { id: string; role: "user" | "bot"; content: string; time: string; }
 interface Conversation { id: string; title: string; agent: string; lastMessage: string; time: string; unread: number; messages: Message[]; }
 
+function load(): Conversation[] { try { return JSON.parse(localStorage.getItem("af_conversations") || "[]"); } catch { return []; } }
+function save(convs: Conversation[]) { try { localStorage.setItem("af_conversations", JSON.stringify(convs)); } catch {} }
+
 export default function ConversationsPage() {
-  const { data: session } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageInput, setMessageInput] = useState("");
@@ -24,24 +24,18 @@ export default function ConversationsPage() {
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  async function loadData() {
-    try {
-      const [convRes, agentRes] = await Promise.all([fetch("/api/conversations"), fetch("/api/agents")]);
-      if (convRes.ok) {
-        const data = await convRes.json();
-        setConversations(data.map((c: any) => ({
-          id: c.id, title: c.title || "Conversation", agent: c.agent?.name || "Agent",
-          lastMessage: c.messages?.length > 0 ? c.messages[c.messages.length - 1].content : "",
-          time: new Date(c.createdAt).toLocaleDateString(), unread: 0,
-          messages: (c.messages || []).map((m: any) => ({ id: m.id, role: m.role, content: m.content, time: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })),
-        })));
-      }
-      if (agentRes.ok) setAgents(await agentRes.json());
-    } catch {}
-  }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const agentName = params.get("agent");
+    const stored = load();
+    if (stored.length === 0 && agentName) {
+      stored.push({ id: String(Date.now()), title: `Chat with ${agentName}`, agent: agentName, lastMessage: "New conversation", time: "now", unread: 0, messages: [] });
+    }
+    setConversations(stored);
+    if (agentName && stored.length > 0) setActiveConv(stored[stored.length - 1].id);
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
-
+  useEffect(() => { save(conversations); }, [conversations]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [conversations, activeConv]);
 
   const startListening = () => {
@@ -55,26 +49,18 @@ export default function ConversationsPage() {
     recognitionRef.current = recognition;
     recognition.start();
   };
-
   const stopListening = () => { if (recognitionRef.current) { recognitionRef.current.stop(); setIsListening(false); } };
 
-  async function newConversation() {
-    const agentName = agents.length > 0 ? agents[0].name : "Assistant";
-    const agentId = agents.length > 0 ? agents[0].id : null;
-    if (!agentId) return;
-    try {
-      const res = await fetch("/api/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `Chat with ${agentName}`, agentId }) });
-      if (res.ok) { loadData(); const data = await res.json(); setActiveConv(data.id); }
-    } catch {}
+  function newConversation() {
+    const agents = JSON.parse(localStorage.getItem("af_agents") || "[]");
+    const agentName = agents.length > 0 ? agents[0].name : "New Chat";
+    const conv: Conversation = { id: String(Date.now()), title: "New conversation", agent: agentName, lastMessage: "", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), unread: 0, messages: [] };
+    setConversations((prev) => [...prev, conv]); setActiveConv(conv.id);
   }
 
-  async function deleteConversation(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!confirm("Delete this conversation?")) return;
-    try {
-      await fetch("/api/conversations", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-      setConversations((prev) => { const next = prev.filter((c) => c.id !== id); if (activeConv === id) setActiveConv(next.length > 0 ? next[next.length - 1].id : null); return next; });
-    } catch {}
+  function deleteConversation(id: string, e: React.MouseEvent) {
+    e.stopPropagation(); if (!confirm("Delete this conversation?")) return;
+    setConversations((prev) => { const next = prev.filter((c) => c.id !== id); if (activeConv === id) setActiveConv(next.length > 0 ? next[next.length - 1].id : null); return next; });
   }
 
   const sendMessage = async () => {
@@ -83,19 +69,12 @@ export default function ConversationsPage() {
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const userMsg: Message = { id: String(Date.now()), role: "user", content: messageInput.trim(), time };
     setMessageInput("");
-
     setConversations((prev) => prev.map((c) => c.id === activeConv ? { ...c, messages: [...c.messages, userMsg], lastMessage: userMsg.content, time } : c));
-
     try {
       const currentConv = conversations.find((c) => c.id === activeConv);
-      const model = agents.find((a) => a.name === currentConv?.agent)?.model || "GPT-4";
       const allMessages = [...(currentConv?.messages || []), userMsg];
-      const reply = await callLLM(model, "You are a helpful AI assistant.", allMessages.map((m) => ({ role: m.role, content: m.content })));
+      const reply = await callLLM("GPT-4", "You are a helpful AI assistant.", allMessages.map((m) => ({ role: m.role, content: m.content })));
       const botMsg: Message = { id: String(Date.now() + 1), role: "bot", content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-
-      await fetch(`/api/conversations/${activeConv}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: messageInput.trim(), role: "user" }) });
-      await fetch(`/api/conversations/${activeConv}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: reply, role: "bot" }) });
-
       setConversations((prev) => prev.map((c) => c.id === activeConv ? { ...c, messages: [...c.messages, botMsg], lastMessage: botMsg.content } : c));
     } catch (err: any) {
       const errMsg: Message = { id: String(Date.now() + 1), role: "bot", content: `⚠️ ${err.message || "Check your API keys in Settings > AI Models."}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
@@ -111,10 +90,7 @@ export default function ConversationsPage() {
     <div className="flex h-[calc(100vh-64px)]">
       <Card className="w-80 shrink-0 rounded-none border-r border-slate-200 dark:border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Conversations</h2>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={newConversation} title="New conversation"><Plus className="h-4 w-4" /></Button>
-          </div>
+          <div className="flex items-center justify-between mb-3"><h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Conversations</h2><Button size="icon" variant="ghost" className="h-8 w-8" onClick={newConversation} title="New conversation"><Plus className="h-4 w-4" /></Button></div>
           <div className="relative"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8" /></div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -134,12 +110,9 @@ export default function ConversationsPage() {
           )}
         </div>
       </Card>
-
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-950">
         {!currentConv ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
-            <div className="text-center"><Bot className="h-16 w-16 mx-auto mb-4 text-slate-200 dark:text-slate-700" /><p className="text-lg">Select a conversation or start a new one</p></div>
-          </div>
+          <div className="flex-1 flex items-center justify-center text-slate-400"><div className="text-center"><Bot className="h-16 w-16 mx-auto mb-4 text-slate-200 dark:text-slate-700" /><p className="text-lg">Select a conversation or start a new one</p></div></div>
         ) : (
           <>
             <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800">
@@ -174,9 +147,7 @@ export default function ConversationsPage() {
                   <Input placeholder={sending ? "AI is thinking..." : "Type a message..."} value={messageInput} onChange={(e) => setMessageInput(e.target.value)} disabled={sending} className="pr-10"
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
                 </div>
-                <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendMessage} disabled={sending || !messageInput.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
+                <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendMessage} disabled={sending || !messageInput.trim()}><Send className="w-4 h-4" /></Button>
               </div>
             </div>
           </>

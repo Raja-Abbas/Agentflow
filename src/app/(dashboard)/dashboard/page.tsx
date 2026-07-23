@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,23 +10,18 @@ import { Bot, MessageSquare, Send, GitBranch, Plus, ArrowRight } from "lucide-re
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from "recharts";
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const [userName, setUserName] = useState("User");
   const [agents, setAgents] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [agentsRes, convRes] = await Promise.all([
-          fetch("/api/agents"),
-          fetch("/api/conversations"),
-        ]);
-        if (agentsRes.ok) setAgents(await agentsRes.json());
-        if (convRes.ok) setConversations(await convRes.json());
-      } catch {} finally { setLoading(false); }
-    }
-    load();
+    try { const raw = localStorage.getItem("af_demo_user"); if (raw) setUserName(JSON.parse(raw).name || "User"); } catch {}
+    try {
+      const a = JSON.parse(localStorage.getItem("af_agents") || "[]");
+      const c = JSON.parse(localStorage.getItem("af_conversations") || "[]");
+      setAgents(a); setConversations(c);
+    } catch {} finally { setLoading(false); }
   }, []);
 
   const totalConversations = conversations.length + agents.reduce((s: number, a: any) => s + (a.conversations || 0), 0);
@@ -48,7 +42,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight dark:text-slate-100">Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400">Welcome back, {session?.user?.name || "User"}</p>
+        <p className="text-slate-500 dark:text-slate-400">Welcome back, {userName}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (

@@ -186,7 +186,7 @@ export default function Home() {
             <Link href="/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link href="/register">
+            <Link href="/login">
               <Button>Get Started Free</Button>
             </Link>
 
@@ -243,7 +243,7 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/register">
+              <Link href="/login">
                 <Button size="lg" className="gap-2">
                   Start building <ArrowRight className="h-4 w-4" />
                 </Button>

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Bot, GitBranch, MessageSquare, BarChart3, Settings, X, Hexagon, ChevronLeft, Moon, Sun, LogOut,
@@ -21,17 +20,29 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const raw = localStorage.getItem("af_demo_user");
+      if (raw) setUser(JSON.parse(raw));
+    } catch {}
+  }, []);
 
-  const initials = session?.user?.name
-    ? session.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-    : session?.user?.email?.charAt(0).toUpperCase() || "?";
+  const initials = user?.name
+    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "D";
+
+  function signOut() {
+    localStorage.removeItem("af_demo_user");
+    router.push("/login");
+  }
 
   return (
     <>
@@ -93,13 +104,13 @@ export function Sidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{session?.user?.name || "User"}</p>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{session?.user?.email || ""}</p>
+                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{user?.name || "Demo User"}</p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || ""}</p>
               </div>
             )}
           </div>
           {!collapsed && (
-            <button onClick={() => signOut({ callbackUrl: "/login" })}
+            <button onClick={signOut}
               className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-red-500 transition-colors">
               <LogOut className="h-4 w-4" />
               Sign Out
