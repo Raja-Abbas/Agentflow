@@ -1,360 +1,235 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search,
-  Send,
-  Paperclip,
-  Smile,
-  Bot,
-  User,
-  MoreVertical,
-  Phone,
-  Video,
-  Mic,
-  MicOff,
+  Search, Send, Bot, User, MoreVertical, Mic, MicOff, Plus, Trash2,
 } from "lucide-react";
 import { callLLM } from "@/lib/llm";
 
-const conversations = [
-  {
-    id: "1",
-    title: "Customer support inquiry",
-    agent: "Customer Support Bot",
-    lastMessage: "I need help with my order",
-    time: "2m ago",
-    unread: 3,
-    active: true,
-  },
-  {
-    id: "2",
-    title: "Pricing question",
-    agent: "Sales Qualifier",
-    lastMessage: "What plans do you offer?",
-    time: "15m ago",
-    unread: 0,
-    active: false,
-  },
-  {
-    id: "3",
-    title: "Technical issue",
-    agent: "FAQ Assistant",
-    lastMessage: "The API is returning 500 errors",
-    time: "1h ago",
-    unread: 1,
-    active: false,
-  },
-  {
-    id: "4",
-    title: "Demo request",
-    agent: "Lead Generator",
-    lastMessage: "I'd like to see a demo",
-    time: "3h ago",
-    unread: 0,
-    active: false,
-  },
-  {
-    id: "5",
-    title: "Setup help",
-    agent: "Onboarding Helper",
-    lastMessage: "How do I connect my database?",
-    time: "1d ago",
-    unread: 0,
-    active: false,
-  },
-  {
-    id: "6",
-    title: "Feature request",
-    agent: "Customer Support Bot",
-    lastMessage: "Can you add dark mode?",
-    time: "2d ago",
-    unread: 0,
-    active: false,
-  },
-];
+interface Message {
+  id: string; role: "user" | "bot"; content: string; time: string;
+}
 
-const messages = [
-  {
-    id: "1",
-    role: "user" as const,
-    content: "Hi, I need help with my order #12345",
-    time: "2:30 PM",
-  },
-  {
-    id: "2",
-    role: "bot" as const,
-    content:
-      "Hello! I'd be happy to help you with order #12345. Let me look that up for you. Could you please confirm the email address used for the order?",
-    time: "2:30 PM",
-  },
-  {
-    id: "3",
-    role: "user" as const,
-    content: "It's john@example.com",
-    time: "2:31 PM",
-  },
-  {
-    id: "4",
-    role: "bot" as const,
-    content:
-      "Thank you! I found your order. It was placed on January 10th and is currently being shipped. The expected delivery date is January 15th. Would you like me to send you the tracking link?",
-    time: "2:31 PM",
-  },
-  {
-    id: "5",
-    role: "user" as const,
-    content: "Yes please",
-    time: "2:32 PM",
-  },
-  {
-    id: "6",
-    role: "bot" as const,
-    content:
-      "I've sent the tracking link to john@example.com. You should receive it within a few minutes. Is there anything else I can help you with?",
-    time: "2:32 PM",
-  },
-];
+interface Conversation {
+  id: string; title: string; agent: string; lastMessage: string; time: string; unread: number; messages: Message[];
+}
+
+function loadConvs(): Conversation[] {
+  try { return JSON.parse(localStorage.getItem("af_conversations") || "[]"); } catch { return []; }
+}
+
+function saveConvs(convs: Conversation[]) {
+  try { localStorage.setItem("af_conversations", JSON.stringify(convs)); } catch {}
+}
 
 export default function ConversationsPage() {
-  const [activeConversation, setActiveConversation] = useState("1");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConv, setActiveConv] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [messageList, setMessageList] = useState(messages);
   const recognitionRef = useRef<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const agentName = params.get("agent");
+    const stored = loadConvs();
+    if (stored.length === 0 && agentName) {
+      const first: Conversation = { id: String(Date.now()), title: `Chat with ${agentName}`, agent: agentName, lastMessage: "New conversation", time: "now", unread: 0, messages: [] };
+      stored.push(first);
+    }
+    setConversations(stored);
+    if (agentName && stored.length > 0) setActiveConv(stored[stored.length - 1].id);
+  }, []);
+
+  useEffect(() => { saveConvs(conversations); }, [conversations]);
+
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [conversations, activeConv]);
 
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
+    recognition.continuous = false; recognition.interimResults = false; recognition.lang = "en-US";
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setMessageInput((prev) => prev + transcript);
-    };
+    recognition.onresult = (event: any) => setMessageInput((prev) => prev + event.results[0][0].transcript);
     recognitionRef.current = recognition;
     recognition.start();
   };
 
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-  };
+  const stopListening = () => { if (recognitionRef.current) { recognitionRef.current.stop(); setIsListening(false); } };
+
+  function newConversation() {
+    const agents = JSON.parse(localStorage.getItem("af_agents") || "[]");
+    const agentName = agents.length > 0 ? agents[0].name : "New Chat";
+    const conv: Conversation = { id: String(Date.now()), title: "New conversation", agent: agentName, lastMessage: "", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), unread: 0, messages: [] };
+    setConversations((prev) => [...prev, conv]);
+    setActiveConv(conv.id);
+  }
+
+  function deleteConversation(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("Delete this conversation?")) return;
+    setConversations((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      if (activeConv === id) setActiveConv(next.length > 0 ? next[next.length - 1].id : null);
+      return next;
+    });
+  }
 
   const sendMessage = async () => {
-    if (!messageInput.trim()) return;
-    const userMsg = { id: `${Date.now()}`, role: "user" as const, content: messageInput, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-    setMessageList((prev) => [...prev, userMsg]);
+    if (!messageInput.trim() || !activeConv || sending) return;
+    setSending(true);
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg: Message = { id: String(Date.now()), role: "user", content: messageInput.trim(), time };
     setMessageInput("");
+
+    setConversations((prev) => {
+      const updated = prev.map((c) => c.id === activeConv ? { ...c, messages: [...c.messages, userMsg], lastMessage: userMsg.content, time: time } : c);
+      return updated;
+    });
+
     try {
-      const reply = await callLLM("GPT-4", "You are a helpful assistant.", [...messageList, userMsg].map((m) => ({ role: m.role, content: m.content })));
-      const botMsg = { id: `${Date.now() + 1}`, role: "bot" as const, content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-      setMessageList((prev) => [...prev, botMsg]);
+      const currentConv = conversations.find((c) => c.id === activeConv);
+      const allMessages = [...(currentConv?.messages || []), userMsg];
+      const reply = await callLLM(conversations.find((c) => c.id === activeConv)?.agent === "Claude" ? "Claude" : "GPT-4",
+        "You are a helpful AI assistant.",
+        allMessages.map((m) => ({ role: m.role, content: m.content }))
+      );
+      const botMsg: Message = { id: String(Date.now() + 1), role: "bot", content: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      setConversations((prev) => prev.map((c) => c.id === activeConv ? { ...c, messages: [...c.messages, botMsg], lastMessage: botMsg.content } : c));
     } catch (err: any) {
-      const errMsg = { id: `${Date.now() + 1}`, role: "bot" as const, content: `⚠️ ${err.message || "Failed to get response. Check your API keys in Settings > AI Models."}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-      setMessageList((prev) => [...prev, errMsg]);
+      const errMsg: Message = { id: String(Date.now() + 1), role: "bot", content: `⚠️ ${err.message || "Check your API keys in Settings > AI Models."}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      setConversations((prev) => prev.map((c) => c.id === activeConv ? { ...c, messages: [...c.messages, errMsg] } : c));
     }
+    setSending(false);
   };
 
-  const filteredConversations = conversations.filter(
-    (c) =>
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.agent.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConvs = conversations.filter(
+    (c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.agent.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeConv = conversations.find((c) => c.id === activeConversation);
+  const currentConv = conversations.find((c) => c.id === activeConv);
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      {/* Left Panel - Conversation List */}
       <Card className="w-80 shrink-0 rounded-none border-r border-slate-200 dark:border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-3">
-            Conversations
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Conversations</h2>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={newConversation} title="New conversation">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => setActiveConversation(conv.id)}
-              className={`w-full text-left p-4 border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors ${
-                activeConversation === conv.id
-                  ? "bg-indigo-50 dark:bg-indigo-950/30 border-l-2 border-l-indigo-500"
-                  : ""
-              }`}
-            >
-              <div className="flex items-start justify-between mb-1">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate pr-2">
-                  {conv.title}
-                </h3>
-                <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-                  {conv.time}
-                </span>
-              </div>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">
-                {conv.agent}
-              </p>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate pr-2">
-                  {conv.lastMessage}
-                </p>
-                {conv.unread > 0 && (
-                  <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] shrink-0">
-                    {conv.unread}
-                  </Badge>
-                )}
-              </div>
-            </button>
-          ))}
+          {filteredConvs.length === 0 ? (
+            <div className="p-4 text-center text-sm text-slate-400">No conversations yet</div>
+          ) : (
+            filteredConvs.map((conv) => (
+              <button key={conv.id} onClick={() => setActiveConv(conv.id)}
+                className={`w-full text-left p-4 border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative ${
+                  activeConv === conv.id ? "bg-indigo-50 dark:bg-indigo-950/30 border-l-2 border-l-indigo-500" : ""
+                }`}>
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate pr-2">{conv.title}</h3>
+                  <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">{conv.time}</span>
+                </div>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">{conv.agent}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate pr-6">{conv.lastMessage || "New conversation"}</p>
+                </div>
+                <button onClick={(e) => deleteConversation(conv.id, e)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </button>
+            ))
+          )}
         </div>
       </Card>
 
-      {/* Right Panel - Chat View */}
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-950">
-        {/* Chat Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                {activeConv?.agent}
-              </h3>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Online
-                </span>
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
-                  GPT-4
-                </Badge>
-              </div>
+        {!currentConv ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400">
+            <div className="text-center">
+              <Bot className="h-16 w-16 mx-auto mb-4 text-slate-200 dark:text-slate-700" />
+              <p className="text-lg">Select a conversation or start a new one</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Phone className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Video className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messageList.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`flex items-end gap-2 max-w-[70%] ${
-                  msg.role === "user" ? "flex-row-reverse" : ""
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                    msg.role === "user"
-                      ? "bg-indigo-100 dark:bg-indigo-900/40"
-                      : "bg-slate-100 dark:bg-slate-800"
-                  }`}
-                >
-                  {msg.role === "user" ? (
-                    <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  ) : (
-                    <Bot className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
-                  )}
+        ) : (
+          <>
+            <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
-                  <div
-                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === "user"
-                        ? "bg-indigo-600 text-white rounded-br-md"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md"
-                    }`}
-                  >
-                    {msg.content}
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{currentConv.agent}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{currentConv.messages.length} messages</span>
                   </div>
-                  <span
-                    className={`text-[10px] text-slate-400 mt-1 block ${
-                      msg.role === "user" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {msg.time}
-                  </span>
                 </div>
               </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => deleteConversation(currentConv.id, e)} title="Delete conversation">
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
-          ))}
-        </div>
 
-        {/* Message Input */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-9 w-9 shrink-0 ${isListening ? "bg-red-100 text-red-500" : ""}`}
-                onClick={isListening ? stopListening : startListening}
-                title={isListening ? "Stop listening" : "Voice input"}
-              >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
-                <Paperclip className="w-4 h-4" />
-              </Button>
-            <div className="flex-1 relative">
-              <Input
-                placeholder="Type a message..."
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                className="pr-10"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-              >
-                <Smile className="w-4 h-4" />
-              </Button>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {currentConv.messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`flex items-end gap-2 max-w-[70%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${msg.role === "user" ? "bg-indigo-100 dark:bg-indigo-900/40" : "bg-slate-100 dark:bg-slate-800"}`}>
+                      {msg.role === "user" ? <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> : <Bot className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />}
+                    </div>
+                    <div>
+                      <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-md" : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md"}`}>
+                        {msg.content}
+                      </div>
+                      <span className={`text-[10px] text-slate-400 mt-1 block ${msg.role === "user" ? "text-right" : "text-left"}`}>{msg.time}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-            <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendMessage}>
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon"
+                  className={`h-9 w-9 shrink-0 ${isListening ? "bg-red-100 text-red-500" : ""}`}
+                  onClick={isListening ? stopListening : startListening}
+                  title={isListening ? "Stop listening" : "Voice input"}>
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+                <div className="flex-1 relative">
+                  <Input placeholder={sending ? "AI is thinking..." : "Type a message..."}
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    disabled={sending}
+                    className="pr-10"
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
+                </div>
+                <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendMessage} disabled={sending || !messageInput.trim()}>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

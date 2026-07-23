@@ -30,3 +30,43 @@ export function getNodeStats(): Record<string, number> {
     return {};
   }
 }
+
+export function getAgents(): Agent[] {
+  try {
+    return JSON.parse(localStorage.getItem("af_agents") || "[]");
+  } catch { return []; }
+}
+
+export function saveAgents(agents: Agent[]) {
+  try { localStorage.setItem("af_agents", JSON.stringify(agents)); } catch {}
+}
+
+export function getConversations(): Conversation[] {
+  try {
+    return JSON.parse(localStorage.getItem("af_conversations") || "[]");
+  } catch { return []; }
+}
+
+export function saveConversations(convs: Conversation[]) {
+  try { localStorage.setItem("af_conversations", JSON.stringify(convs)); } catch {}
+}
+
+export interface Agent {
+  id: number;
+  name: string;
+  description: string;
+  model: string;
+  status: string;
+  conversations: number;
+  lastActive: string;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  agent: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  messages: { id: string; role: "user" | "bot"; content: string; time: string }[];
+}
