@@ -1,6 +1,6 @@
 # AgentFlow
 
-**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, multi-model support, and real-time conversation testing.
+**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, multi-model support, live debug mode, versioning, and voice input.
 
 **Author:** [Raja Abbas Affandi](https://www.linkedin.com/in/raja-abbas-affandi)
 
@@ -12,7 +12,9 @@ Build, test, and deploy AI chatbots without writing code.
 
 - **Visual Flow Editor** — Drag-and-drop nodes to design conversation flows with triggers, AI responses, conditions, and API calls
 - **Multi-Model Support** — Connect to OpenAI GPT-4, Claude, and Gemini
-- **Real-time Testing** — Test your chatbot flows in real-time with a built-in chat interface
+- **Flow Versioning** — Save snapshots of your flows, browse history, and restore any previous version
+- **Live Debug Mode** — Step through each node in real time to trace decisions, see condition evaluations, and inspect AI response prompts
+- **Voice Input** — Use speech-to-text to test flows hands-free with the built-in microphone button
 - **Agent Management** — Create, configure, and manage multiple AI agents
 - **Conversation History** — Track and review all conversations across agents
 - **Analytics Dashboard** — Monitor messages, response times, satisfaction rates, and agent performance
@@ -26,7 +28,7 @@ Build, test, and deploy AI chatbots without writing code.
 | Language | TypeScript (strict mode) |
 | ORM | Prisma 7 + `@prisma/adapter-libsql` |
 | Database | SQLite via `@libsql/client` |
-| Flow Editor | React Flow v11 |
+| Flow Editor | Custom SVG with drag-and-drop |
 | Charts | Recharts |
 | Styling | Tailwind CSS v4 |
 | Icons | Lucide React |
