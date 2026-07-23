@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -44,12 +45,20 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${jakarta.variable} ${ibmPlex.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-jakarta)]">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

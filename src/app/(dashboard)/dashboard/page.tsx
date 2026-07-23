@@ -92,8 +92,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-slate-500">Overview of your AI agents</p>
+        <h1 className="text-3xl font-bold tracking-tight dark:text-slate-100">Dashboard</h1>
+        <p className="text-slate-500 dark:text-slate-400">Overview of your AI agents</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

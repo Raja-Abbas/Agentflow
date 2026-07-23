@@ -144,21 +144,40 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "AgentFlow",
+            applicationCategory: "DeveloperApplication",
+            operatingSystem: "Web",
+            description:
+              "Build, test, and deploy AI chatbots with a visual drag-and-drop flow editor. Connect to OpenAI, Gemini, and Claude. No coding required.",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+          }),
+        }}
+      />
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Logo />
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <a href="#features" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
               Features
             </a>
-            <a href="#how-it-works" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <a href="#how-it-works" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
               How It Works
             </a>
-            <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <a href="#pricing" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
               Pricing
             </a>
           </nav>
@@ -171,7 +190,7 @@ export default function Home() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -180,15 +199,15 @@ export default function Home() {
 
         {/* Mobile nav */}
         {mobileMenuOpen && (
-          <div className="border-t border-slate-200 px-4 pb-4 md:hidden">
+          <div className="border-t border-slate-200 dark:border-slate-800 px-4 pb-4 md:hidden">
             <nav className="flex flex-col gap-2 pt-4">
-              <a href="#features" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <a href="#features" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 Features
               </a>
-              <a href="#how-it-works" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <a href="#how-it-works" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 How It Works
               </a>
-              <a href="#pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <a href="#pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 Pricing
               </a>
             </nav>
@@ -198,7 +217,7 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-blue-50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 dark:from-slate-900 via-white dark:via-slate-950 to-blue-50 dark:to-indigo-950" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-indigo-100/50 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-blue-100/30 blur-3xl" />
 
@@ -208,14 +227,14 @@ export default function Home() {
               <Zap className="mr-1 inline h-3 w-3" /> No code required
             </Badge>
 
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
               Build AI chatbots{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
                 without writing code
               </span>
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-400">
               Design, test, and deploy intelligent chatbots with a visual drag-and-drop flow
               editor. Connect to OpenAI, Gemini, and Claude in minutes.
             </p>
@@ -233,12 +252,12 @@ export default function Home() {
 
             {/* Floating UI preview */}
             <div className="mx-auto mt-16 max-w-2xl">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-indigo-500/10">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl shadow-indigo-500/10">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <div className="h-3 w-3 rounded-full bg-red-400" />
                   <div className="h-3 w-3 rounded-full bg-yellow-400" />
                   <div className="h-3 w-3 rounded-full bg-green-400" />
-                  <span className="ml-2 text-xs text-slate-400">AgentFlow Editor</span>
+                  <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">AgentFlow Editor</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 pt-4">
                   <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-center">
@@ -267,17 +286,17 @@ export default function Home() {
       <section id="features" className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Everything you need to build smart chatbots
             </h2>
-            <p className="mt-4 text-lg text-slate-600">
+            <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
               A complete toolkit for designing, testing, and deploying AI-powered conversations.
             </p>
           </div>
 
           <div className="mx-auto mt-16 grid max-w-5xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <Card key={feature.title} className="group border-slate-200 transition-shadow hover:shadow-lg hover:shadow-indigo-500/5">
+              <Card key={feature.title} className="group border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:border-slate-700 transition-shadow hover:shadow-lg hover:shadow-indigo-500/5">
                 <CardHeader>
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 transition-colors group-hover:bg-indigo-100">
                     <feature.icon className="h-6 w-6 text-indigo-600" />
@@ -285,7 +304,7 @@ export default function Home() {
                   <CardTitle className="mt-4">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-relaxed text-slate-600">{feature.description}</p>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -294,13 +313,13 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="bg-slate-50 py-24">
+      <section id="how-it-works" className="bg-slate-50 dark:bg-slate-900 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Up and running in 3 steps
             </h2>
-            <p className="mt-4 text-lg text-slate-600">
+            <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
               Go from idea to deployed chatbot in minutes, not days.
             </p>
           </div>
@@ -314,10 +333,10 @@ export default function Home() {
                 <div className="absolute -top-4 right-0 text-right text-sm font-bold text-indigo-200 sm:right-4">
                   Step {item.step}
                 </div>
-                <h3 className="mt-6 text-xl font-semibold text-slate-900">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                <h3 className="mt-6 text-xl font-semibold text-slate-900 dark:text-slate-100">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{item.description}</p>
                 {i < steps.length - 1 && (
-                  <div className="absolute top-8 hidden h-px w-full bg-slate-200 lg:block" style={{ left: "60%" }} />
+                  <div className="absolute top-8 hidden h-px w-full bg-slate-200 dark:bg-slate-700 lg:block" style={{ left: "60%" }} />
                 )}
               </div>
             ))}
@@ -329,10 +348,10 @@ export default function Home() {
       <section id="pricing" className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Simple, transparent pricing
             </h2>
-            <p className="mt-4 text-lg text-slate-600">
+            <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
               Start free. Upgrade when you need more power.
             </p>
           </div>
@@ -344,7 +363,7 @@ export default function Home() {
                 className={`relative flex flex-col ${
                   plan.popular
                     ? "border-2 border-indigo-600 shadow-xl shadow-indigo-500/10"
-                    : "border-slate-200"
+                    : "border-slate-200 dark:border-slate-800"
                 }`}
               >
                 {plan.popular && (
@@ -353,15 +372,15 @@ export default function Home() {
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
-                    <span className="text-sm text-slate-500">{plan.period}</span>
+                    <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{plan.price}</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">{plan.period}</span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-500">{plan.description}</p>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{plan.description}</p>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
                   <ul className="flex-1 space-y-3">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-slate-700">
+                      <li key={f} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
                         {f}
                       </li>
@@ -413,26 +432,26 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-slate-50">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Logo />
             <div className="flex items-center gap-6">
-              <a href="#features" className="text-sm text-slate-500 hover:text-slate-700">
+              <a href="#features" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
                 Features
               </a>
-              <a href="#pricing" className="text-sm text-slate-500 hover:text-slate-700">
+              <a href="#pricing" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
                 Pricing
               </a>
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700">
+              <a href="#" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
                 Docs
               </a>
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700">
+              <a href="#" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
                 Blog
               </a>
             </div>
           </div>
-          <div className="mt-8 text-center text-sm text-slate-400">
+          <div className="mt-8 text-center text-sm text-slate-400 dark:text-slate-500">
             © 2026 Raja Abbas Affandi. All rights reserved.
           </div>
         </div>

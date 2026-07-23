@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Bot,
@@ -13,6 +14,8 @@ import {
   X,
   Hexagon,
   ChevronLeft,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 
@@ -27,8 +30,12 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   return (
     <>
@@ -51,13 +58,13 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-all duration-300
+          fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300
           ${collapsed ? "w-[72px]" : "w-64"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
+        <div className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-4">
           <Link href="/dashboard" className="flex-shrink-0">
             {!collapsed && <Logo />}
             {collapsed && (
@@ -119,6 +126,24 @@ export function Sidebar() {
           })}
         </nav>
 
+        {/* Theme toggle */}
+        <div className="border-t border-slate-200 px-3 py-2">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 ${
+              collapsed ? "justify-center" : ""
+            } ${mounted ? "text-slate-600 dark:text-slate-400" : "text-slate-400"}`}
+            title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-5 w-5 shrink-0" />
+            ) : (
+              <Moon className="h-5 w-5 shrink-0" />
+            )}
+            {!collapsed && <span>{mounted && theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
+          </button>
+        </div>
+
         {/* User section */}
         <div className="border-t border-slate-200 p-4">
           <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
@@ -127,7 +152,7 @@ export function Sidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900">Raja Abbas</p>
+                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">Raja Abbas</p>
                 <p className="truncate text-xs text-slate-500">raja@agentflow.dev</p>
               </div>
             )}

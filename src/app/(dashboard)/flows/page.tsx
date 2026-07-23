@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,9 @@ import {
   ChevronRight,
   Check,
   RotateCcw,
+  Download,
+  Upload,
+  Link as LinkIcon,
 } from "lucide-react";
 
 interface FlowNode {
@@ -60,6 +63,85 @@ interface FlowVersion {
   edges: FlowEdge[];
   createdAt: string;
 }
+
+interface FlowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+}
+
+const flowTemplates: FlowTemplate[] = [
+  {
+    id: "customer-support",
+    name: "Customer Support",
+    description: "Handle customer inquiries with intent routing and GPT-4 responses",
+    icon: "Bot",
+    nodes: [
+      { id: "1", label: "Start", type: "trigger", x: 280, y: 20 },
+      { id: "2", label: "Greeting", type: "ai-response", x: 260, y: 150, model: "GPT-4", prompt: "You are a friendly support agent. Greet the customer warmly and ask how you can help.", temperature: 0.7 },
+      { id: "3", label: "Check Intent", type: "condition", x: 270, y: 280, condition: "intent === 'support'" },
+      { id: "4", label: "Handle Issue", type: "ai-response", x: 60, y: 410, model: "GPT-4", prompt: "You are a support specialist. Help the customer resolve their issue step by step.", temperature: 0.5 },
+      { id: "5", label: "Sales Redirect", type: "ai-response", x: 440, y: 410, model: "Claude", prompt: "You are a sales representative. Help the customer find the right product.", temperature: 0.8 },
+      { id: "6", label: "End", type: "end", x: 290, y: 540 },
+    ],
+    edges: [
+      { id: "e1-2", source: "1", target: "2" },
+      { id: "e2-3", source: "2", target: "3" },
+      { id: "e3-4", source: "3", target: "4", label: "Support" },
+      { id: "e3-5", source: "3", target: "5", label: "Sales" },
+      { id: "e4-6", source: "4", target: "6" },
+      { id: "e5-6", source: "5", target: "6" },
+    ],
+  },
+  {
+    id: "lead-qualification",
+    name: "Lead Qualification",
+    description: "Qualify leads by collecting info and routing to sales",
+    icon: "UserCheck",
+    nodes: [
+      { id: "1", label: "Start", type: "trigger", x: 280, y: 20 },
+      { id: "2", label: "Welcome", type: "ai-response", x: 260, y: 150, model: "GPT-4", prompt: "Welcome! Let me help qualify you as a lead. What's your name and company?", temperature: 0.7 },
+      { id: "3", label: "Collect Email", type: "user-input", x: 260, y: 280 },
+      { id: "4", label: "Check Budget", type: "condition", x: 270, y: 410, condition: "budget > 1000" },
+      { id: "5", label: "Route to Sales", type: "ai-response", x: 60, y: 540, model: "GPT-4", prompt: "Thank you! A sales rep will contact you within 24 hours.", temperature: 0.5 },
+      { id: "6", label: "Nurture Track", type: "ai-response", x: 440, y: 540, model: "Claude", prompt: "Thanks for your interest! Here are some resources to learn more while you evaluate.", temperature: 0.6 },
+      { id: "7", label: "End", type: "end", x: 290, y: 670 },
+    ],
+    edges: [
+      { id: "e1-2", source: "1", target: "2" },
+      { id: "e2-3", source: "2", target: "3" },
+      { id: "e3-4", source: "3", target: "4" },
+      { id: "e4-5", source: "4", target: "5", label: "Qualified" },
+      { id: "e4-6", source: "4", target: "6", label: "Not Ready" },
+      { id: "e5-7", source: "5", target: "7" },
+      { id: "e6-7", source: "6", target: "7" },
+    ],
+  },
+  {
+    id: "faq-bot",
+    name: "FAQ Bot",
+    description: "Answer frequently asked questions from your knowledge base",
+    icon: "HelpCircle",
+    nodes: [
+      { id: "1", label: "Start", type: "trigger", x: 280, y: 20 },
+      { id: "2", label: "Ask Question", type: "user-input", x: 260, y: 150 },
+      { id: "3", label: "Search KB", type: "ai-response", x: 260, y: 280, model: "Gemini", prompt: "Answer the user's question based on general knowledge. Be concise and helpful.", temperature: 0.3 },
+      { id: "4", label: "Confirm Answer", type: "condition", x: 270, y: 410, condition: "user_satisfied === true" },
+      { id: "5", label: "End", type: "end", x: 290, y: 540 },
+      { id: "6", label: "Escalate", type: "api-call", x: 440, y: 540, prompt: "Escalate to human support via API" },
+    ],
+    edges: [
+      { id: "e1-2", source: "1", target: "2" },
+      { id: "e2-3", source: "2", target: "3" },
+      { id: "e3-4", source: "3", target: "4" },
+      { id: "e4-5", source: "4", target: "5", label: "Yes" },
+      { id: "e4-6", source: "4", target: "6", label: "No" },
+    ],
+  },
+];
 
 interface DebugStep {
   nodeId: string;
@@ -148,6 +230,21 @@ export default function FlowEditorPage() {
   const [debugMessages, setDebugMessages] = useState<{ role: string; content: string }[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [flowName, setFlowName] = useState("Customer Support Flow");
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const flowData = params.get("flow");
+    if (flowData) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(atob(flowData)));
+        if (decoded.nodes && decoded.edges) {
+          setNodes(decoded.nodes);
+          if (decoded.name) setFlowName(decoded.name);
+        }
+      } catch { /* ignore invalid URLs */ }
+    }
+  }, []);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const currentDebugNodeData = nodes.find((n) => n.id === currentDebugNode);
@@ -224,6 +321,52 @@ export default function FlowEditorPage() {
     setSelectedNodeId(null);
     setShowVersionPanel(false);
   }, []);
+
+  const exportFlow = useCallback(() => {
+    const data = { name: flowName, nodes, edges };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${flowName.replace(/\s+/g, "-").toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [flowName, nodes, edges]);
+
+  const importFlow = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          if (data.nodes && data.edges) {
+            setNodes(data.nodes);
+            if (data.name) setFlowName(data.name);
+          }
+        } catch { /* ignore invalid files */ }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
+
+  const loadTemplate = useCallback((template: FlowTemplate) => {
+    setNodes(JSON.parse(JSON.stringify(template.nodes)));
+    setFlowName(template.name);
+    setShowTemplateDialog(false);
+  }, []);
+
+  const copyShareLink = useCallback(() => {
+    const data = { name: flowName, nodes, edges };
+    const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
+    const url = `${window.location.origin}${window.location.pathname}?flow=${encoded}`;
+    navigator.clipboard.writeText(url);
+  }, [flowName, nodes, edges]);
 
   const startDebug = useCallback(() => {
     const triggerNode = nodes.find((n) => n.type === "trigger");
@@ -370,24 +513,30 @@ export default function FlowEditorPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowVersionPanel(!showVersionPanel)}
-            className={showVersionPanel ? "bg-indigo-50 border-indigo-300" : ""}
-          >
+          <Button variant="outline" size="sm" onClick={() => setShowTemplateDialog(true)} title="Load a template">
+            <Zap className="w-4 h-4 mr-1.5" />
+            Templates
+          </Button>
+          <Button variant="outline" size="sm" onClick={importFlow} title="Import flow from JSON file">
+            <Download className="w-4 h-4 mr-1.5" />
+            Import
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportFlow} title="Export flow as JSON file">
+            <Upload className="w-4 h-4 mr-1.5" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm" onClick={copyShareLink} title="Copy shareable link">
+            <LinkIcon className="w-4 h-4 mr-1.5" />
+            Share
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowVersionPanel(!showVersionPanel)} className={showVersionPanel ? "bg-indigo-50 border-indigo-300" : ""}>
             <History className="w-4 h-4 mr-1.5" />
             Versions
             {versions.length > 0 && (
               <Badge className="ml-1.5 h-5 px-1.5 text-[10px]">{versions.length}</Badge>
             )}
           </Button>
-          <Button
-            variant={debugMode ? "default" : "outline"}
-            size="sm"
-            onClick={debugMode ? stopDebug : startDebug}
-            className={debugMode ? "bg-amber-500 hover:bg-amber-600 border-amber-500" : ""}
-          >
+          <Button variant={debugMode ? "default" : "outline"} size="sm" onClick={debugMode ? stopDebug : startDebug} className={debugMode ? "bg-amber-500 hover:bg-amber-600 border-amber-500" : ""}>
             {debugMode ? (
               <><Pause className="w-4 h-4 mr-1.5" /> Stop Debug</>
             ) : (
@@ -812,6 +961,43 @@ export default function FlowEditorPage() {
           </Card>
         )}
       </div>
+
+      {/* Template Dialog */}
+      {showTemplateDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowTemplateDialog(false)}>
+          <Card className="w-[480px] max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Flow Templates</CardTitle>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowTemplateDialog(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {flowTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="rounded-lg border border-slate-200 p-4 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                  onClick={() => loadTemplate(template)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100">
+                      <Bot className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">{template.name}</h3>
+                      <p className="text-xs text-slate-500">{template.description}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-1.5">
+                    <Badge variant="outline" className="text-[10px]">{template.nodes.length} nodes</Badge>
+                    <Badge variant="outline" className="text-[10px]">{template.edges.length} edges</Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
