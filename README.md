@@ -1,6 +1,6 @@
 # AgentFlow
 
-**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, multi-model support, live debug mode, versioning, voice input, live LLM calls (BYO API key), and embeddable widget.
+**MVP 1** — Visual AI chatbot builder with drag-and-drop flow editor, undo/redo, onboarding walkthrough, resizable panels, multi-model support, live debug mode, versioning, voice input, live LLM calls (BYO API key), embeddable widget, node usage analytics, and dark mode.
 
 **Author:** [Raja Abbas Affandi](https://www.linkedin.com/in/raja-abbas-affandi)
 
@@ -19,6 +19,11 @@ Build, test, and deploy AI chatbots without writing code.
 - **Embeddable Widget** — Deploy your chatbot on any website with a single `<script>` tag. Floating chat button with popup
 - **Flow Templates** — Start from pre-built flows (Customer Support, Lead Qualification, FAQ Bot)
 - **Export/Import & Sharing** — Export flows as JSON, import from file, or share via encoded URL
+- **Undo/Redo** — Full undo/redo support with Ctrl+Z/Y and toolbar buttons. Every action tracked: drag, drop, delete, edit, template load, import, version restore
+- **Onboarding Walkthrough** — First-time visitors see a guided 5-step tour on first visit (dismissable, shown once)
+- **Resizable Panels** — Drag handles between palette, canvas, and properties panels with adjustable widths
+- **Node Usage Analytics** — Tracks which node types you use most, displayed as a color-coded breakdown in the Analytics page
+- **Mobile Responsiveness** — Scrollable tables and fluid layout across all dashboard pages
 - **Dark Mode** — Toggle in sidebar, full support across all pages
 - **Agent Management** — Create, configure, and manage multiple AI agents
 - **Conversation History** — Track and review all conversations across agents
